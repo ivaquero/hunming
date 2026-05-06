@@ -88,6 +88,31 @@ pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
     apply(paths)
 }
 
+pub fn list(paths: &AppPaths) -> Result<String> {
+    let config = load_config(paths)?;
+
+    if config.aliases.is_empty() {
+        return Ok("No aliases configured.\n".to_string());
+    }
+
+    let name_width = config
+        .aliases
+        .keys()
+        .map(|name| name.len())
+        .max()
+        .unwrap_or(0);
+
+    let mut output = String::new();
+    for (name, alias) in &config.aliases {
+        let (kind, detail) = describe_alias(alias);
+        output.push_str(&format!(
+            "{name:<name_width$}  {kind:<11}  {detail}\n",
+        ));
+    }
+
+    Ok(output)
+}
+
 pub fn init(paths: &AppPaths) -> Result<InitResult> {
     let targets = default_init_targets()?;
     init_with_targets(paths, &targets)
@@ -190,6 +215,43 @@ pub fn write_shell_profile(profile_path: impl AsRef<Path>, block: &str) -> Resul
     };
     let updated = insert_managed_block(&existing, block);
     atomic_write(profile_path, &updated)
+}
+
+fn describe_alias(alias: &Alias) -> (&'static str, String) {
+    let has_command = !alias.command.is_empty();
+    let has_bash = alias.bash.as_ref().is_some_and(|value| !value.trim().is_empty());
+    let has_powershell = alias
+        .powershell
+        .as_ref()
+        .is_some_and(|value| !value.trim().is_empty());
+
+    if has_bash && has_powershell {
+        return (
+            "shell",
+            format!(
+                "bash: {} | powershell: {}",
+                alias.bash.as_deref().unwrap_or_default(),
+                alias.powershell.as_deref().unwrap_or_default()
+            ),
+        );
+    }
+
+    if has_bash {
+        return ("bash", alias.bash.as_deref().unwrap_or_default().to_string());
+    }
+
+    if has_powershell {
+        return (
+            "powershell",
+            alias.powershell.as_deref().unwrap_or_default().to_string(),
+        );
+    }
+
+    if has_command {
+        return ("command", alias.command.join(" "));
+    }
+
+    ("command", String::new())
 }
 
 fn default_init_targets() -> Result<InitTargets> {
