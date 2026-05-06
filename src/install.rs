@@ -1,8 +1,13 @@
 use crate::config::load_config;
+use crate::config::save_config;
+use crate::config::default_config;
 use crate::fs::atomic_write;
 use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell};
-use anyhow::Result;
+use anyhow::{Context, Result};
+use directories::BaseDirs;
+use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -13,6 +18,21 @@ pub const MANAGED_BLOCK_END: &str = "# <<< hunming init <<<";
 pub struct ApplyResult {
     pub bash_script: PathBuf,
     pub powershell_script: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitResult {
+    pub config_file: PathBuf,
+    pub bash_profile: PathBuf,
+    pub powershell_profile: PathBuf,
+    pub bash_script: PathBuf,
+    pub powershell_script: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitTargets {
+    pub bash_profile: PathBuf,
+    pub powershell_profile: PathBuf,
 }
 
 pub fn apply(paths: &AppPaths) -> Result<ApplyResult> {
@@ -28,6 +48,38 @@ pub fn apply(paths: &AppPaths) -> Result<ApplyResult> {
     Ok(ApplyResult {
         bash_script: paths.bash_script.clone(),
         powershell_script: paths.powershell_script.clone(),
+    })
+}
+
+pub fn init(paths: &AppPaths) -> Result<InitResult> {
+    let targets = default_init_targets()?;
+    init_with_targets(paths, &targets)
+}
+
+pub fn init_with_targets(paths: &AppPaths, targets: &InitTargets) -> Result<InitResult> {
+    paths.ensure_config_dir()?;
+    paths.ensure_generated_dir()?;
+
+    if !paths.config_file.exists() {
+        save_config(paths, &default_config())?;
+    }
+
+    let apply_result = apply(paths)?;
+    write_shell_profile(
+        &targets.bash_profile,
+        &bash_managed_block(&paths.bash_script),
+    )?;
+    write_shell_profile(
+        &targets.powershell_profile,
+        &powershell_managed_block(&paths.powershell_script),
+    )?;
+
+    Ok(InitResult {
+        config_file: paths.config_file.clone(),
+        bash_profile: targets.bash_profile.clone(),
+        powershell_profile: targets.powershell_profile.clone(),
+        bash_script: apply_result.bash_script,
+        powershell_script: apply_result.powershell_script,
     })
 }
 
@@ -85,4 +137,44 @@ fn managed_block_range(content: &str) -> Option<(usize, usize)> {
     }
 
     Some((start, end))
+}
+
+pub fn write_shell_profile(profile_path: impl AsRef<Path>, block: &str) -> Result<()> {
+    let profile_path = profile_path.as_ref();
+    let existing = match fs::read_to_string(profile_path) {
+        Ok(content) => content,
+        Err(err) if err.kind() == ErrorKind::NotFound => String::new(),
+        Err(err) => Err(err).with_context(|| {
+            format!(
+                "failed to read shell profile at {}",
+                profile_path.display()
+            )
+        })?,
+    };
+    let updated = insert_managed_block(&existing, block);
+    atomic_write(profile_path, &updated)
+}
+
+fn default_init_targets() -> Result<InitTargets> {
+    let base_dirs =
+        BaseDirs::new().context("failed to determine home directory for hunming init")?;
+    let home_dir = base_dirs.home_dir();
+
+    let bash_profile = home_dir.join(".bashrc");
+    let powershell_profile = if cfg!(windows) {
+        home_dir
+            .join("Documents")
+            .join("PowerShell")
+            .join("Microsoft.PowerShell_profile.ps1")
+    } else {
+        home_dir
+            .join(".config")
+            .join("powershell")
+            .join("Microsoft.PowerShell_profile.ps1")
+    };
+
+    Ok(InitTargets {
+        bash_profile,
+        powershell_profile,
+    })
 }

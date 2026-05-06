@@ -7,7 +7,10 @@ fn main() -> Result<()> {
     let cli = hunming::cli::Cli::parse();
 
     match cli.command {
-        hunming::cli::Commands::Init => {}
+        hunming::cli::Commands::Init => {
+            let paths = AppPaths::new()?;
+            install::init(&paths)?;
+        }
         hunming::cli::Commands::Add { .. } => {}
         hunming::cli::Commands::Remove { .. } => {}
         hunming::cli::Commands::List => {}
