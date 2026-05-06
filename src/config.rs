@@ -1,5 +1,6 @@
 use crate::model::Config;
 use crate::paths::AppPaths;
+use crate::fs::atomic_write;
 use anyhow::{Context, Result};
 use std::fs;
 
@@ -37,12 +38,7 @@ pub fn save_config(paths: &AppPaths, config: &Config) -> Result<()> {
         content.push('\n');
     }
 
-    fs::write(&paths.config_file, content).with_context(|| {
-        format!(
-            "failed to write config file at {}",
-            paths.config_file.display()
-        )
-    })?;
+    atomic_write(&paths.config_file, &content)?;
 
     Ok(())
 }
