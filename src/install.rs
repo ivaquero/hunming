@@ -2,13 +2,14 @@ use crate::config::default_config;
 use crate::config::load_config;
 use crate::config::save_config;
 use crate::fs::atomic_write;
-use crate::model::Alias;
+use crate::model::{Alias, Config};
 use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell};
-use crate::validation::validate_alias_name;
+use crate::validation::{validate_alias_name, validate_config};
 use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
 use directories::BaseDirs;
+use std::env;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
@@ -35,6 +36,13 @@ pub struct InitResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InitTargets {
     pub bash_profile: PathBuf,
+    pub powershell_profile: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DoctorTargets {
+    pub bash_rc_profile: PathBuf,
+    pub bash_login_profile: PathBuf,
     pub powershell_profile: PathBuf,
 }
 
@@ -196,6 +204,83 @@ pub fn init_with_targets_and_shell(
     })
 }
 
+pub fn doctor(paths: &AppPaths, fix: bool) -> Result<String> {
+    let targets = default_doctor_targets()?;
+    doctor_with_targets(paths, &targets, fix)
+}
+
+pub fn doctor_with_targets(paths: &AppPaths, targets: &DoctorTargets, fix: bool) -> Result<String> {
+    let initial_state = inspect_config(paths);
+
+    if fix {
+        repair_doctor(paths, targets, &initial_state)?;
+    }
+
+    let config_state = inspect_config(paths);
+    let mut report = DoctorReport::default();
+
+    match &config_state {
+        ConfigState::Missing => report.warn("config file missing"),
+        ConfigState::Invalid(error) => report.warn(format!("config file is invalid: {error}")),
+        ConfigState::Valid(_) => report.ok("config file exists"),
+    }
+
+    if paths.bash_script.exists() {
+        report.ok("generated bash file exists");
+    } else {
+        report.warn("generated bash file missing");
+    }
+
+    if paths.powershell_script.exists() {
+        report.ok("generated powershell file exists");
+    } else {
+        report.warn("generated powershell file missing");
+    }
+
+    check_profile_block(
+        &mut report,
+        "~/.bashrc",
+        &targets.bash_rc_profile,
+        &bash_managed_block(&paths.bash_script),
+    );
+
+    if profile_sources_bash_rc(&targets.bash_login_profile) {
+        report.ok("~/.bash_profile sources ~/.bashrc");
+    } else {
+        report.warn("~/.bash_profile does not source ~/.bashrc");
+    }
+
+    check_profile_block(
+        &mut report,
+        "PowerShell profile",
+        &targets.powershell_profile,
+        &powershell_managed_block(&paths.powershell_script),
+    );
+
+    report.warn("PowerShell execution policy may block profile loading");
+
+    if let ConfigState::Valid(config) = &config_state {
+        report.ok("no duplicated alias names");
+
+        let mut shadowed = Vec::new();
+        for name in config.aliases.keys() {
+            if command_exists(name) {
+                shadowed.push(name.clone());
+            }
+        }
+
+        if shadowed.is_empty() {
+            report.ok("no aliases shadow existing command");
+        } else {
+            for name in shadowed {
+                report.warn(format!("alias \"{name}\" shadows existing command"));
+            }
+        }
+    }
+
+    Ok(report.finish())
+}
+
 pub fn bash_managed_block(script_path: impl AsRef<Path>) -> String {
     let script_path = script_path.as_ref().display();
 
@@ -312,6 +397,185 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
     ("command", String::new())
 }
 
+fn repair_doctor(
+    paths: &AppPaths,
+    targets: &DoctorTargets,
+    config_state: &ConfigState,
+) -> Result<()> {
+    match config_state {
+        ConfigState::Missing => {
+            save_config(paths, &default_config())?;
+            apply(paths, None)?;
+            write_shell_profile(
+                &targets.bash_rc_profile,
+                &bash_managed_block(&paths.bash_script),
+            )?;
+            write_shell_profile(
+                &targets.powershell_profile,
+                &powershell_managed_block(&paths.powershell_script),
+            )?;
+        }
+        ConfigState::Valid(_) => {
+            apply(paths, None)?;
+            write_shell_profile(
+                &targets.bash_rc_profile,
+                &bash_managed_block(&paths.bash_script),
+            )?;
+            write_shell_profile(
+                &targets.powershell_profile,
+                &powershell_managed_block(&paths.powershell_script),
+            )?;
+        }
+        ConfigState::Invalid(_) => {}
+    }
+
+    Ok(())
+}
+
+fn inspect_config(paths: &AppPaths) -> ConfigState {
+    if !paths.config_file.exists() {
+        return ConfigState::Missing;
+    }
+
+    let content = match fs::read_to_string(&paths.config_file) {
+        Ok(content) => content,
+        Err(err) => {
+            return ConfigState::Invalid(format!(
+                "failed to read config file at {}: {err}",
+                paths.config_file.display()
+            ));
+        }
+    };
+
+    let config: Config = match toml::from_str(&content) {
+        Ok(config) => config,
+        Err(err) => {
+            return ConfigState::Invalid(format!(
+                "failed to parse config file at {}: {err}",
+                paths.config_file.display()
+            ));
+        }
+    };
+
+    if let Err(err) = validate_config(&config) {
+        return ConfigState::Invalid(err.to_string());
+    }
+
+    ConfigState::Valid(config)
+}
+
+fn check_profile_block(report: &mut DoctorReport, label: &str, path: &Path, block: &str) {
+    match fs::read_to_string(path) {
+        Ok(content) if content.contains(block) => {
+            report.ok(format!("{label} contains humming managed block"));
+        }
+        Ok(_) => {
+            report.warn(format!("{label} does not contain humming managed block"));
+        }
+        Err(err) if err.kind() == ErrorKind::NotFound => {
+            report.warn(format!("{label} missing"));
+        }
+        Err(err) => {
+            report.warn(format!(
+                "failed to read {label} at {}: {err}",
+                path.display()
+            ));
+        }
+    }
+}
+
+fn profile_sources_bash_rc(path: &Path) -> bool {
+    let Ok(content) = fs::read_to_string(path) else {
+        return false;
+    };
+
+    content.contains(". ~/.bashrc")
+        || content.contains("source ~/.bashrc")
+        || content.contains(". \"$HOME/.bashrc\"")
+        || content.contains("source \"$HOME/.bashrc\"")
+        || content.contains(". ${HOME}/.bashrc")
+        || content.contains("source ${HOME}/.bashrc")
+}
+
+fn command_exists(name: &str) -> bool {
+    let Some(path_var) = env::var_os("PATH") else {
+        return false;
+    };
+
+    for dir in env::split_paths(&path_var) {
+        if cfg!(windows) {
+            for candidate in command_candidates_windows(&dir, name) {
+                if candidate.is_file() {
+                    return true;
+                }
+            }
+        } else if dir.join(name).is_file() {
+            return true;
+        }
+    }
+
+    false
+}
+
+#[cfg(windows)]
+fn command_candidates_windows(dir: &Path, name: &str) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    candidates.push(dir.join(name));
+
+    let exts = env::var_os("PATHEXT")
+        .map(|value| {
+            value
+                .to_string_lossy()
+                .split(';')
+                .filter(|item| !item.is_empty())
+                .map(|item| item.to_string())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| vec![".COM".into(), ".EXE".into(), ".BAT".into(), ".CMD".into()]);
+
+    if Path::new(name).extension().is_none() {
+        for ext in exts {
+            candidates.push(dir.join(format!("{name}{ext}")));
+        }
+    }
+
+    candidates
+}
+
+#[cfg(not(windows))]
+fn command_candidates_windows(_dir: &Path, _name: &str) -> Vec<PathBuf> {
+    Vec::new()
+}
+
+#[derive(Default)]
+struct DoctorReport {
+    lines: Vec<String>,
+}
+
+impl DoctorReport {
+    fn ok(&mut self, message: impl Into<String>) {
+        self.lines.push(format!("[✓] {}", message.into()));
+    }
+
+    fn warn(&mut self, message: impl Into<String>) {
+        self.lines.push(format!("[!] {}", message.into()));
+    }
+
+    fn finish(self) -> String {
+        if self.lines.is_empty() {
+            String::new()
+        } else {
+            format!("{}\n", self.lines.join("\n"))
+        }
+    }
+}
+
+enum ConfigState {
+    Missing,
+    Invalid(String),
+    Valid(Config),
+}
+
 fn default_init_targets() -> Result<InitTargets> {
     let base_dirs =
         BaseDirs::new().context("failed to determine home directory for hunming init")?;
@@ -332,6 +596,32 @@ fn default_init_targets() -> Result<InitTargets> {
 
     Ok(InitTargets {
         bash_profile,
+        powershell_profile,
+    })
+}
+
+fn default_doctor_targets() -> Result<DoctorTargets> {
+    let base_dirs =
+        BaseDirs::new().context("failed to determine home directory for hunming doctor")?;
+    let home_dir = base_dirs.home_dir();
+
+    let bash_rc_profile = home_dir.join(".bashrc");
+    let bash_login_profile = home_dir.join(".bash_profile");
+    let powershell_profile = if cfg!(windows) {
+        home_dir
+            .join("Documents")
+            .join("PowerShell")
+            .join("Microsoft.PowerShell_profile.ps1")
+    } else {
+        home_dir
+            .join(".config")
+            .join("powershell")
+            .join("Microsoft.PowerShell_profile.ps1")
+    };
+
+    Ok(DoctorTargets {
+        bash_rc_profile,
+        bash_login_profile,
         powershell_profile,
     })
 }

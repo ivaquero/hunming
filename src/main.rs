@@ -46,6 +46,10 @@ fn main() -> Result<()> {
                 }
             }
         }
+        hunming::cli::Commands::Doctor(args) => {
+            let paths = AppPaths::new()?;
+            print!("{}", install::doctor(&paths, args.fix)?);
+        }
     }
 
     Ok(())

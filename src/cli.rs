@@ -21,6 +21,8 @@ pub enum Commands {
     List,
     /// Apply the generated scripts.
     Apply(ApplyArgs),
+    /// Check the current installation.
+    Doctor(DoctorArgs),
 }
 
 #[derive(Debug, Args)]
@@ -57,6 +59,13 @@ pub struct ApplyArgs {
     /// Generate only one shell script.
     #[arg(long, value_enum)]
     pub shell: Option<InitShell>,
+}
+
+#[derive(Debug, Args)]
+pub struct DoctorArgs {
+    /// Attempt safe repairs.
+    #[arg(long)]
+    pub fix: bool,
 }
 
 #[derive(Debug, Args)]
