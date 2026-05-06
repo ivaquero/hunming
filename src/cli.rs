@@ -21,6 +21,8 @@ pub enum Commands {
     List,
     /// Apply the generated scripts.
     Apply(ApplyArgs),
+    /// Edit the configuration file.
+    Edit,
     /// Check the current installation.
     Doctor(DoctorArgs),
 }

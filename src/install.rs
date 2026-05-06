@@ -14,6 +14,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
 
 pub const MANAGED_BLOCK_START: &str = "# >>> hunming init >>>";
 pub const MANAGED_BLOCK_END: &str = "# <<< hunming init <<<";
@@ -81,6 +82,27 @@ pub fn apply(paths: &AppPaths, shell: Option<InitShell>) -> Result<ApplyResult> 
     })
 }
 
+pub fn edit(paths: &AppPaths) -> Result<ApplyResult> {
+    edit_with_opener(paths, |config_file| {
+        let editor = resolve_editor()?;
+        run_editor(&editor, config_file)
+    })
+}
+
+pub fn edit_with_opener<F>(paths: &AppPaths, opener: F) -> Result<ApplyResult>
+where
+    F: FnOnce(&Path) -> Result<()>,
+{
+    paths.ensure_config_dir()?;
+
+    if !paths.config_file.exists() {
+        save_config(paths, &default_config())?;
+    }
+
+    opener(&paths.config_file)?;
+    apply(paths, None)
+}
+
 pub fn add(
     paths: &AppPaths,
     name: String,
@@ -121,6 +143,44 @@ fn normalize_optional(value: Option<String>) -> Option<String> {
             Some(trimmed.to_string())
         }
     })
+}
+
+fn resolve_editor() -> Result<Vec<String>> {
+    for key in ["VISUAL", "EDITOR"] {
+        if let Some(value) = env::var_os(key) {
+            let value = value.to_string_lossy().trim().to_string();
+            if !value.is_empty() {
+                return Ok(value
+                    .split_whitespace()
+                    .map(|part| part.to_string())
+                    .collect());
+            }
+        }
+    }
+
+    if cfg!(windows) {
+        Ok(vec!["notepad".to_string()])
+    } else {
+        Ok(vec!["vi".to_string()])
+    }
+}
+
+fn run_editor(editor: &[String], config_file: &Path) -> Result<()> {
+    let Some((program, args)) = editor.split_first() else {
+        bail!("no editor configured");
+    };
+
+    let status = Command::new(program)
+        .args(args)
+        .arg(config_file)
+        .status()
+        .with_context(|| format!("failed to launch editor `{program}`"))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        bail!("editor `{program}` exited with status {status}")
+    }
 }
 
 pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
