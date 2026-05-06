@@ -77,3 +77,24 @@ fn creates_missing_directories() {
     assert!(paths.config_dir.is_dir());
     assert!(paths.generated_dir.is_dir());
 }
+
+#[test]
+fn builds_paths_from_custom_config_file() {
+    let temp = tempdir().expect("temp dir should be created");
+    let config_file = temp.path().join("profiles").join("aliases.toml");
+    let paths = AppPaths::from_config_file(&config_file);
+
+    assert_eq!(paths.config_file, config_file);
+    assert_eq!(paths.config_dir, temp.path().join("profiles"));
+    assert_eq!(
+        paths.generated_dir,
+        temp.path().join("profiles").join("generated")
+    );
+    assert_eq!(
+        paths.bash_script,
+        temp.path()
+            .join("profiles")
+            .join("generated")
+            .join("bash.sh")
+    );
+}

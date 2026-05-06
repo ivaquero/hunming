@@ -32,6 +32,17 @@ impl AppPaths {
         }
     }
 
+    pub fn from_config_file(config_file: impl Into<PathBuf>) -> Self {
+        let config_file = config_file.into();
+        let config_dir = config_file
+            .parent()
+            .filter(|path| !path.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
+
+        Self::from_config_dir(config_dir).with_config_file(config_file)
+    }
+
     pub fn from_config_dir(config_dir: impl Into<PathBuf>) -> Self {
         let config_dir = config_dir.into();
         let generated_dir = config_dir.join(GENERATED_DIR_NAME);
@@ -44,6 +55,11 @@ impl AppPaths {
             generated_dir,
             config_dir,
         }
+    }
+
+    fn with_config_file(mut self, config_file: PathBuf) -> Self {
+        self.config_file = config_file;
+        self
     }
 
     pub fn from_unix_home(home_dir: impl AsRef<Path>) -> Self {

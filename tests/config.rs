@@ -1,4 +1,4 @@
-use hunming::config::{default_config, load_config, save_config};
+use hunming::config::{default_config, load_config, render_template, save_config};
 use hunming::model::{Alias, Config};
 use hunming::paths::AppPaths;
 use std::collections::BTreeMap;
@@ -56,6 +56,15 @@ fn save_and_load_roundtrip_config() {
     let loaded = load_config(&paths).expect("config should load");
 
     assert_eq!(loaded, config);
+}
+
+#[test]
+fn render_template_returns_default_toml() {
+    let template = render_template().expect("template should render");
+
+    assert!(template.starts_with("version = 1"));
+    assert!(template.contains("aliases"));
+    assert!(template.ends_with('\n'));
 }
 
 #[test]

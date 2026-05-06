@@ -12,11 +12,14 @@ Cross-platform alias manager for Bash and PowerShell.
 ## Usage
 
 - `hunming init`: create the config file, generated scripts, and shell profile blocks.
+- `hunming --config /path/to/aliases.toml ...`: use a custom `aliases.toml` path for any command.
 - `hunming add`: add or update one alias definition.
 - `hunming add --profile work|personal`: scope the alias to a work or personal profile.
 - `hunming list`: show all configured aliases in a compact table.
 - `hunming show <name>`: print one alias in TOML form.
 - `hunming apply`: regenerate shell scripts from `aliases.toml`.
+- `hunming template`: print a starter `aliases.toml` template to stdout.
+- `hunming template --output aliases.toml`: write the template to a file.
 - `hunming backup`: back up shell profiles before you edit them.
 - `hunming restore`: restore shell profiles from the last backup.
 - `hunming doctor`: check the current installation and optionally repair it with `--fix`.

@@ -1,11 +1,16 @@
 use crate::install::InitShell;
 use crate::model::Profile;
 use clap::{Args, Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[command(name = "hunming", version, about = "Cross-platform alias manager")]
 #[command(arg_required_else_help = true)]
 pub struct Cli {
+    /// Path to aliases.toml.
+    #[arg(long, global = true, value_name = "FILE")]
+    pub config: Option<PathBuf>,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -30,6 +35,8 @@ pub enum Commands {
     Restore(RestoreArgs),
     /// Generate shell completions.
     Completions(CompletionsArgs),
+    /// Export an aliases.toml template.
+    Template(TemplateArgs),
     /// Edit the configuration file.
     Edit,
     /// Check the current installation.
@@ -99,6 +106,13 @@ pub struct CompletionsArgs {
     /// Shell to generate completions for.
     #[arg(value_enum)]
     pub shell: InitShell,
+}
+
+#[derive(Debug, Args)]
+pub struct TemplateArgs {
+    /// Write the template to a file instead of stdout.
+    #[arg(long, value_name = "FILE")]
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]

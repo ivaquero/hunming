@@ -41,6 +41,16 @@ pub fn save_config(paths: &AppPaths, config: &Config) -> Result<()> {
     Ok(())
 }
 
+pub fn render_template() -> Result<String> {
+    let mut content =
+        toml::to_string_pretty(&default_config()).context("failed to serialize template")?;
+    if !content.ends_with('\n') {
+        content.push('\n');
+    }
+
+    Ok(content)
+}
+
 #[derive(Debug, Deserialize)]
 struct ConfigDocument {
     #[serde(default = "default_version")]
