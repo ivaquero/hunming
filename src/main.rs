@@ -11,8 +11,14 @@ fn main() -> Result<()> {
             let paths = AppPaths::new()?;
             install::init(&paths)?;
         }
-        hunming::cli::Commands::Add { .. } => {}
-        hunming::cli::Commands::Remove { .. } => {}
+        hunming::cli::Commands::Add(args) => {
+            let paths = AppPaths::new()?;
+            install::add(&paths, args.name, args.command, args.force)?;
+        }
+        hunming::cli::Commands::Remove(args) => {
+            let paths = AppPaths::new()?;
+            install::remove(&paths, args.name)?;
+        }
         hunming::cli::Commands::List => {}
         hunming::cli::Commands::Apply => {
             let paths = AppPaths::new()?;

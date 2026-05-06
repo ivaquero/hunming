@@ -2,9 +2,10 @@ use crate::config::load_config;
 use crate::config::save_config;
 use crate::config::default_config;
 use crate::fs::atomic_write;
+use crate::model::Alias;
 use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use directories::BaseDirs;
 use std::fs;
 use std::io::ErrorKind;
@@ -49,6 +50,42 @@ pub fn apply(paths: &AppPaths) -> Result<ApplyResult> {
         bash_script: paths.bash_script.clone(),
         powershell_script: paths.powershell_script.clone(),
     })
+}
+
+pub fn add(
+    paths: &AppPaths,
+    name: String,
+    command: Vec<String>,
+    force: bool,
+) -> Result<ApplyResult> {
+    let mut config = load_config(paths)?;
+
+    if config.aliases.contains_key(&name) && !force {
+        bail!("alias `{name}` already exists; use --force to overwrite");
+    }
+
+    config.aliases.insert(
+        name,
+        Alias {
+            command,
+            bash: None,
+            powershell: None,
+        },
+    );
+
+    save_config(paths, &config)?;
+    apply(paths)
+}
+
+pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
+    let mut config = load_config(paths)?;
+
+    if config.aliases.remove(&name).is_none() {
+        bail!("alias `{name}` does not exist");
+    }
+
+    save_config(paths, &config)?;
+    apply(paths)
 }
 
 pub fn init(paths: &AppPaths) -> Result<InitResult> {

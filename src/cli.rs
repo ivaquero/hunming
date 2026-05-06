@@ -27,6 +27,10 @@ pub struct AddArgs {
     /// Alias name to create.
     pub name: String,
 
+    /// Overwrite an existing alias.
+    #[arg(long)]
+    pub force: bool,
+
     /// Command to run for this alias.
     #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 1..)]
     pub command: Vec<String>,
