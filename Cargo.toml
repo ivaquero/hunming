@@ -2,6 +2,14 @@
 name = "hunming"
 version = "0.1.0"
 edition = "2024"
+description = "Cross-platform alias manager for Bash and PowerShell."
+readme = "README.md"
+repository = "https://github.com/ivaquero/hunming"
+license = "GPL-2.0-or-later WITH Bison-exception-2.2"
+
+[[bin]]
+name = "hunming"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
