@@ -7,6 +7,7 @@ use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell};
 use crate::validation::validate_alias_name;
 use anyhow::{bail, Context, Result};
+use clap::ValueEnum;
 use directories::BaseDirs;
 use std::fs;
 use std::io::ErrorKind;
@@ -35,6 +36,13 @@ pub struct InitResult {
 pub struct InitTargets {
     pub bash_profile: PathBuf,
     pub powershell_profile: PathBuf,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[value(rename_all = "lower")]
+pub enum InitShell {
+    Bash,
+    Powershell,
 }
 
 pub fn apply(paths: &AppPaths) -> Result<ApplyResult> {
@@ -119,12 +127,20 @@ pub fn list(paths: &AppPaths) -> Result<String> {
     Ok(output)
 }
 
-pub fn init(paths: &AppPaths) -> Result<InitResult> {
+pub fn init(paths: &AppPaths, shell: Option<InitShell>) -> Result<InitResult> {
     let targets = default_init_targets()?;
-    init_with_targets(paths, &targets)
+    init_with_targets_and_shell(paths, &targets, shell)
 }
 
 pub fn init_with_targets(paths: &AppPaths, targets: &InitTargets) -> Result<InitResult> {
+    init_with_targets_and_shell(paths, targets, None)
+}
+
+pub fn init_with_targets_and_shell(
+    paths: &AppPaths,
+    targets: &InitTargets,
+    shell: Option<InitShell>,
+) -> Result<InitResult> {
     paths.ensure_config_dir()?;
     paths.ensure_generated_dir()?;
 
@@ -133,14 +149,20 @@ pub fn init_with_targets(paths: &AppPaths, targets: &InitTargets) -> Result<Init
     }
 
     let apply_result = apply(paths)?;
-    write_shell_profile(
-        &targets.bash_profile,
-        &bash_managed_block(&paths.bash_script),
-    )?;
-    write_shell_profile(
-        &targets.powershell_profile,
-        &powershell_managed_block(&paths.powershell_script),
-    )?;
+
+    if shell.is_none() || matches!(shell, Some(InitShell::Bash)) {
+        write_shell_profile(
+            &targets.bash_profile,
+            &bash_managed_block(&paths.bash_script),
+        )?;
+    }
+
+    if shell.is_none() || matches!(shell, Some(InitShell::Powershell)) {
+        write_shell_profile(
+            &targets.powershell_profile,
+            &powershell_managed_block(&paths.powershell_script),
+        )?;
+    }
 
     Ok(InitResult {
         config_file: paths.config_file.clone(),

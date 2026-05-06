@@ -7,9 +7,9 @@ fn main() -> Result<()> {
     let cli = hunming::cli::Cli::parse();
 
     match cli.command {
-        hunming::cli::Commands::Init => {
+        hunming::cli::Commands::Init(args) => {
             let paths = AppPaths::new()?;
-            install::init(&paths)?;
+            install::init(&paths, args.shell)?;
         }
         hunming::cli::Commands::Add(args) => {
             let paths = AppPaths::new()?;

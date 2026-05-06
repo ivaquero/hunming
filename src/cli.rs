@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use crate::install::InitShell;
 
 #[derive(Debug, Parser)]
 #[command(name = "hunming", version, about = "Cross-platform alias manager")]
@@ -11,7 +12,7 @@ pub struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Initialize the configuration file.
-    Init,
+    Init(InitArgs),
     /// Add a new alias definition.
     Add(AddArgs),
     /// Remove an alias definition.
@@ -20,6 +21,13 @@ pub enum Commands {
     List,
     /// Apply the generated scripts.
     Apply,
+}
+
+#[derive(Debug, Args)]
+pub struct InitArgs {
+    /// Initialize only one shell profile.
+    #[arg(long, value_enum)]
+    pub shell: Option<InitShell>,
 }
 
 #[derive(Debug, Args)]
