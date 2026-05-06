@@ -48,8 +48,31 @@ pub fn render_template() -> Result<String> {
         content.push('\n');
     }
 
+    content.push('\n');
+    content.push_str(TEMPLATE_EXAMPLES);
+
     Ok(content)
 }
+
+const TEMPLATE_EXAMPLES: &str = r#"# Examples:
+# Uncomment one block and edit it to match your needs.
+#
+# [aliases.gs]
+# command = ["git", "status", "--short"]
+# tags = ["git", "status"]
+#
+# [aliases.ll]
+# bash = "ls -lah"
+# powershell = "Get-ChildItem -Force"
+#
+# [aliases.gs-work]
+# command = ["git", "status", "--short"]
+# profile = "work"
+#
+# [aliases.open]
+# command = ["xdg-open", "."]
+# platforms = ["linux"]
+"#;
 
 #[derive(Debug, Deserialize)]
 struct ConfigDocument {

@@ -63,8 +63,16 @@ fn render_template_returns_default_toml() {
     let template = render_template().expect("template should render");
 
     assert!(template.starts_with("version = 1"));
-    assert!(template.contains("aliases"));
+    assert!(template.contains("# [aliases.gs]"));
+    assert!(template.contains("command = [\"git\", \"status\", \"--short\"]"));
+    assert!(template.contains("bash = \"ls -lah\""));
+    assert!(template.contains("powershell = \"Get-ChildItem -Force\""));
+    assert!(template.contains("profile = \"work\""));
+    assert!(template.contains("platforms = [\"linux\"]"));
     assert!(template.ends_with('\n'));
+
+    let decoded: Config = toml::from_str(&template).expect("template should stay valid TOML");
+    assert_eq!(decoded, default_config());
 }
 
 #[test]
