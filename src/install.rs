@@ -28,6 +28,11 @@ pub struct ApplyResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProfileResult {
+    pub profile_paths: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InitResult {
     pub config_file: PathBuf,
     pub bash_profile: PathBuf,
@@ -117,6 +122,66 @@ where
 
     opener(&paths.config_file)?;
     apply(paths, None)
+}
+
+pub fn backup(_paths: &AppPaths, shell: Option<InitShell>) -> Result<ProfileResult> {
+    let targets = default_init_targets()?;
+    backup_with_targets(&targets, shell)
+}
+
+pub fn backup_with_targets(
+    targets: &InitTargets,
+    shell: Option<InitShell>,
+) -> Result<ProfileResult> {
+    let profiles = selected_profile_paths(targets, shell);
+    let mut backup_paths = Vec::new();
+
+    for profile in profiles {
+        if let Some(backup_path) = backup_shell_profile(&profile)? {
+            backup_paths.push(backup_path);
+        }
+    }
+
+    if backup_paths.is_empty() {
+        bail!("no shell profiles found to back up");
+    }
+
+    Ok(ProfileResult {
+        profile_paths: backup_paths,
+    })
+}
+
+pub fn restore(_paths: &AppPaths, shell: Option<InitShell>) -> Result<ProfileResult> {
+    let targets = default_init_targets()?;
+    restore_with_targets(&targets, shell)
+}
+
+pub fn restore_with_targets(
+    targets: &InitTargets,
+    shell: Option<InitShell>,
+) -> Result<ProfileResult> {
+    let profiles = selected_profile_paths(targets, shell);
+
+    for profile in &profiles {
+        let backup_path = shell_profile_backup_path(profile);
+        if !backup_path.exists() {
+            bail!(
+                "backup for {} is missing at {}",
+                profile.display(),
+                backup_path.display()
+            );
+        }
+    }
+
+    let mut restored_paths = Vec::new();
+    for profile in profiles {
+        restore_shell_profile(&profile)?;
+        restored_paths.push(profile);
+    }
+
+    Ok(ProfileResult {
+        profile_paths: restored_paths,
+    })
 }
 
 pub fn add(
@@ -471,7 +536,44 @@ pub fn write_shell_profile(profile_path: impl AsRef<Path>, block: &str) -> Resul
         })?,
     };
     let updated = insert_managed_block(&existing, block);
+    if existing == updated {
+        return Ok(());
+    }
+
+    backup_shell_profile(profile_path)?;
     atomic_write(profile_path, &updated)
+}
+
+fn backup_shell_profile(profile_path: impl AsRef<Path>) -> Result<Option<PathBuf>> {
+    let profile_path = profile_path.as_ref();
+    if !profile_path.exists() {
+        return Ok(None);
+    }
+
+    let content = fs::read_to_string(profile_path)
+        .with_context(|| format!("failed to read shell profile at {}", profile_path.display()))?;
+    let backup_path = shell_profile_backup_path(profile_path);
+    atomic_write(&backup_path, &content)?;
+    Ok(Some(backup_path))
+}
+
+fn restore_shell_profile(profile_path: impl AsRef<Path>) -> Result<PathBuf> {
+    let profile_path = profile_path.as_ref();
+    let backup_path = shell_profile_backup_path(profile_path);
+    let content = fs::read_to_string(&backup_path)
+        .with_context(|| format!("failed to read backup at {}", backup_path.display()))?;
+    atomic_write(profile_path, &content)?;
+    Ok(profile_path.to_path_buf())
+}
+
+fn shell_profile_backup_path(profile_path: impl AsRef<Path>) -> PathBuf {
+    let profile_path = profile_path.as_ref();
+    let backup_name = match profile_path.file_name() {
+        Some(name) => format!("{}.hunming.bak", name.to_string_lossy()),
+        None => "hunming.bak".to_string(),
+    };
+
+    profile_path.with_file_name(backup_name)
 }
 
 fn describe_alias(alias: &Alias) -> (&'static str, String) {
@@ -641,6 +743,7 @@ fn repair_doctor(
                 &targets.bash_rc_profile,
                 &bash_managed_block(&paths.bash_script),
             )?;
+            write_shell_profile(&targets.zsh_profile, &bash_managed_block(&paths.zsh_script))?;
             write_shell_profile(
                 &targets.powershell_profile,
                 &powershell_managed_block(&paths.powershell_script),
@@ -652,6 +755,7 @@ fn repair_doctor(
                 &targets.bash_rc_profile,
                 &bash_managed_block(&paths.bash_script),
             )?;
+            write_shell_profile(&targets.zsh_profile, &bash_managed_block(&paths.zsh_script))?;
             write_shell_profile(
                 &targets.powershell_profile,
                 &powershell_managed_block(&paths.powershell_script),
@@ -755,6 +859,19 @@ fn command_candidates_windows(dir: &Path, name: &str) -> Vec<PathBuf> {
 #[cfg(not(windows))]
 fn command_candidates_windows(_dir: &Path, _name: &str) -> Vec<PathBuf> {
     Vec::new()
+}
+
+fn selected_profile_paths(targets: &InitTargets, shell: Option<InitShell>) -> Vec<PathBuf> {
+    match shell {
+        Some(InitShell::Bash) => vec![targets.bash_profile.clone()],
+        Some(InitShell::Zsh) => vec![targets.zsh_profile.clone()],
+        Some(InitShell::Powershell) => vec![targets.powershell_profile.clone()],
+        None => vec![
+            targets.bash_profile.clone(),
+            targets.zsh_profile.clone(),
+            targets.powershell_profile.clone(),
+        ],
+    }
 }
 
 #[derive(Default)]

@@ -23,6 +23,10 @@ pub enum Commands {
     Show(ShowArgs),
     /// Apply the generated scripts.
     Apply(ApplyArgs),
+    /// Back up shell profiles before changes.
+    Backup(BackupArgs),
+    /// Restore shell profiles from the last backup.
+    Restore(RestoreArgs),
     /// Generate shell completions.
     Completions(CompletionsArgs),
     /// Edit the configuration file.
@@ -67,6 +71,20 @@ pub struct AddArgs {
 #[derive(Debug, Args)]
 pub struct ApplyArgs {
     /// Generate only one shell script.
+    #[arg(long, value_enum)]
+    pub shell: Option<InitShell>,
+}
+
+#[derive(Debug, Args)]
+pub struct BackupArgs {
+    /// Back up only one shell profile.
+    #[arg(long, value_enum)]
+    pub shell: Option<InitShell>,
+}
+
+#[derive(Debug, Args)]
+pub struct RestoreArgs {
+    /// Restore only one shell profile.
     #[arg(long, value_enum)]
     pub shell: Option<InitShell>,
 }

@@ -56,6 +56,20 @@ fn main() -> Result<()> {
                 }
             }
         }
+        hunming::cli::Commands::Backup(args) => {
+            let paths = AppPaths::new()?;
+            let result = install::backup(&paths, args.shell)?;
+            for path in result.profile_paths {
+                println!("{}", path.display());
+            }
+        }
+        hunming::cli::Commands::Restore(args) => {
+            let paths = AppPaths::new()?;
+            let result = install::restore(&paths, args.shell)?;
+            for path in result.profile_paths {
+                println!("{}", path.display());
+            }
+        }
         hunming::cli::Commands::Completions(args) => {
             print!("{}", generate_completions(args.shell)?);
         }
