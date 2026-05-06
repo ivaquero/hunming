@@ -22,6 +22,7 @@ fn rejects_invalid_alias_names_on_save() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -112,6 +113,7 @@ fn add_rejects_invalid_alias_name() {
         "1bad".to_string(),
         None,
         None,
+        None,
         Vec::new(),
         vec!["git".into(), "status".into()],
         false,
@@ -137,6 +139,7 @@ fn rejects_invalid_tags_on_save() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 

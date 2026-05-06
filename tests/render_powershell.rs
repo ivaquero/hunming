@@ -1,5 +1,5 @@
-use hunming::model::{Alias, Config};
-use hunming::render::render_powershell;
+use hunming::model::{Alias, Config, Profile};
+use hunming::render::render_powershell_with_profile;
 use std::collections::BTreeMap;
 
 #[test]
@@ -15,6 +15,7 @@ fn renders_command_based_powershell_functions() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -23,7 +24,7 @@ fn renders_command_based_powershell_functions() {
         aliases,
     };
 
-    let rendered = render_powershell(&config);
+    let rendered = render_powershell_with_profile(&config, None);
 
     assert_eq!(rendered, "function gs {\n    git status --short @args\n}\n");
 }
@@ -41,6 +42,7 @@ fn renders_explicit_powershell_functions() {
             powershell: Some("Get-ChildItem -Force".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -49,7 +51,7 @@ fn renders_explicit_powershell_functions() {
         aliases,
     };
 
-    let rendered = render_powershell(&config);
+    let rendered = render_powershell_with_profile(&config, None);
 
     assert_eq!(
         rendered,
@@ -70,6 +72,7 @@ fn falls_back_to_command_when_powershell_is_missing() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -79,7 +82,7 @@ fn falls_back_to_command_when_powershell_is_missing() {
     };
 
     assert_eq!(
-        render_powershell(&config),
+        render_powershell_with_profile(&config, None),
         "function gco {\n    git checkout @args\n}\n"
     );
 }
@@ -94,7 +97,7 @@ fn skips_empty_aliases() {
         aliases,
     };
 
-    assert!(render_powershell(&config).is_empty());
+    assert!(render_powershell_with_profile(&config, None).is_empty());
 }
 
 #[test]
@@ -110,6 +113,7 @@ fn respects_forward_args_flag() {
             powershell: None,
             forward_args: false,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -119,7 +123,7 @@ fn respects_forward_args_flag() {
     };
 
     assert_eq!(
-        render_powershell(&config),
+        render_powershell_with_profile(&config, None),
         "function gs {\n    git status\n}\n"
     );
 }
@@ -137,6 +141,7 @@ fn filters_other_platforms() {
             powershell: None,
             forward_args: true,
             platforms: vec![current_platform()],
+            profile: None,
         },
     );
     aliases.insert(
@@ -149,6 +154,7 @@ fn filters_other_platforms() {
             powershell: None,
             forward_args: true,
             platforms: vec![other_platform()],
+            profile: None,
         },
     );
 
@@ -158,8 +164,53 @@ fn filters_other_platforms() {
     };
 
     assert_eq!(
-        render_powershell(&config),
+        render_powershell_with_profile(&config, None),
         "function local {\n    echo local @args\n}\n"
+    );
+}
+
+#[test]
+fn filters_other_profiles() {
+    let mut aliases = BTreeMap::new();
+    aliases.insert(
+        "work".to_string(),
+        Alias {
+            description: None,
+            command: vec!["echo".into(), "work".into()],
+            tags: vec!["work".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
+            profile: Some(Profile::Work),
+        },
+    );
+    aliases.insert(
+        "personal".to_string(),
+        Alias {
+            description: None,
+            command: vec!["echo".into(), "personal".into()],
+            tags: vec!["personal".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
+            profile: Some(Profile::Personal),
+        },
+    );
+
+    let config = Config {
+        version: 1,
+        aliases,
+    };
+
+    assert_eq!(
+        render_powershell_with_profile(&config, Some(Profile::Work)),
+        "function work {\n    echo work @args\n}\n"
+    );
+    assert_eq!(
+        render_powershell_with_profile(&config, Some(Profile::Personal)),
+        "function personal {\n    echo personal @args\n}\n"
     );
 }
 

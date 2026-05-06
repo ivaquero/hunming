@@ -22,6 +22,7 @@ fn remove_deletes_alias_and_updates_scripts() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
     aliases.insert(
@@ -34,6 +35,7 @@ fn remove_deletes_alias_and_updates_scripts() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 

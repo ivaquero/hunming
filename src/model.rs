@@ -106,7 +106,13 @@ impl Alias {
     }
 
     pub fn is_active_for_profile(&self, profile: Option<Profile>) -> bool {
-        self.profile.is_none() || profile.is_none_or(|profile| self.profile == Some(profile))
+        match self.profile {
+            None => true,
+            Some(expected) => match profile {
+                None => true,
+                Some(current) => current == expected,
+            },
+        }
     }
 
     pub fn is_active(&self) -> bool {

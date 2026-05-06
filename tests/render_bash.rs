@@ -1,6 +1,4 @@
-use hunming::model::{Alias, Config};
-use hunming::model::Profile;
-use hunming::render::render_bash;
+use hunming::model::{Alias, Config, Profile};
 use hunming::render::render_bash_with_profile;
 use std::collections::BTreeMap;
 
@@ -26,7 +24,7 @@ fn renders_command_based_bash_functions() {
         aliases,
     };
 
-    let rendered = render_bash(&config);
+    let rendered = render_bash_with_profile(&config, None);
 
     assert_eq!(rendered, "gs() {\n  git status --short \"$@\"\n}\n");
 }
@@ -53,7 +51,7 @@ fn renders_explicit_bash_functions() {
         aliases,
     };
 
-    let rendered = render_bash(&config);
+    let rendered = render_bash_with_profile(&config, None);
 
     assert_eq!(rendered, "ll() {\n  ls -lah \"$@\"\n}\n");
 }
@@ -68,7 +66,7 @@ fn skips_empty_aliases() {
         aliases,
     };
 
-    assert!(render_bash(&config).is_empty());
+    assert!(render_bash_with_profile(&config, None).is_empty());
 }
 
 #[test]
@@ -93,7 +91,10 @@ fn respects_forward_args_flag() {
         aliases,
     };
 
-    assert_eq!(render_bash(&config), "gs() {\n  git status\n}\n");
+    assert_eq!(
+        render_bash_with_profile(&config, None),
+        "gs() {\n  git status\n}\n"
+    );
 }
 
 #[test]
@@ -131,7 +132,10 @@ fn filters_other_platforms() {
         aliases,
     };
 
-    assert_eq!(render_bash(&config), "local() {\n  echo local \"$@\"\n}\n");
+    assert_eq!(
+        render_bash_with_profile(&config, None),
+        "local() {\n  echo local \"$@\"\n}\n"
+    );
 }
 
 #[test]

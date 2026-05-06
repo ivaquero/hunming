@@ -1,6 +1,6 @@
 use hunming::config::save_config;
 use hunming::install::show;
-use hunming::model::{Alias, Config, Platform};
+use hunming::model::{Alias, Config, Platform, Profile};
 use hunming::paths::AppPaths;
 use std::collections::BTreeMap;
 use tempfile::tempdir;
@@ -21,6 +21,7 @@ fn show_renders_alias_definition() {
             powershell: Some("Get-ChildItem -Force".into()),
             forward_args: false,
             platforms: vec![Platform::Linux],
+            profile: Some(Profile::Work),
         },
     );
 
@@ -44,6 +45,7 @@ tags = [\"files\"]\n\
 bash = \"ls -lah\"\n\
 powershell = \"Get-ChildItem -Force\"\n\
 forward_args = false\n\
+profile = \"work\"\n\
 platforms = [\"linux\"]\n"
     );
 }

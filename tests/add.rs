@@ -16,6 +16,7 @@ fn add_creates_new_alias_and_updates_scripts() {
         "gs".to_string(),
         None,
         None,
+        None,
         Vec::new(),
         vec!["git".into(), "status".into(), "--short".into()],
         false,
@@ -54,6 +55,7 @@ fn add_rejects_existing_alias_without_force() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -69,6 +71,7 @@ fn add_rejects_existing_alias_without_force() {
     let error = add(
         &paths,
         "gs".to_string(),
+        None,
         None,
         None,
         Vec::new(),
@@ -99,6 +102,7 @@ fn add_replaces_existing_alias_with_force() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -114,6 +118,7 @@ fn add_replaces_existing_alias_with_force() {
     add(
         &paths,
         "gs".to_string(),
+        None,
         None,
         None,
         Vec::new(),
@@ -143,6 +148,7 @@ fn add_supports_explicit_shell_commands() {
         "ll".to_string(),
         Some("ls -lah".into()),
         Some("Get-ChildItem -Force".into()),
+        None,
         vec!["files".into()],
         Vec::new(),
         false,

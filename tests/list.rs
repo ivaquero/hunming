@@ -31,6 +31,7 @@ fn list_sorts_aliases_and_shows_kind() {
             powershell: Some("Get-ChildItem -Force".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
     aliases.insert(
@@ -43,6 +44,7 @@ fn list_sorts_aliases_and_shows_kind() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
     aliases.insert(
@@ -55,6 +57,7 @@ fn list_sorts_aliases_and_shows_kind() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
