@@ -17,6 +17,7 @@ fn rejects_invalid_alias_names_on_save() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -111,12 +112,44 @@ fn add_rejects_invalid_alias_name() {
         "1bad".to_string(),
         None,
         None,
+        Vec::new(),
         vec!["git".into(), "status".into()],
         false,
     )
     .expect_err("add should reject invalid names");
 
     assert!(error.to_string().contains("invalid alias name"));
+}
+
+#[test]
+fn rejects_invalid_tags_on_save() {
+    let temp = tempdir().expect("temp dir should be created");
+    let paths = AppPaths::from_config_dir(temp.path().join("hunming"));
+
+    let mut aliases = BTreeMap::new();
+    aliases.insert(
+        "gs".to_string(),
+        Alias {
+            description: None,
+            command: vec!["git".into(), "status".into()],
+            tags: vec!["".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
+        },
+    );
+
+    let error = save_config(
+        &paths,
+        &Config {
+            version: 1,
+            aliases,
+        },
+    )
+    .expect_err("save should reject empty tags");
+
+    assert!(error.to_string().contains("empty tag"));
 }
 
 #[test]

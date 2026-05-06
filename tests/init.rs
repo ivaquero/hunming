@@ -13,6 +13,7 @@ fn init_creates_config_generated_and_profiles() {
     let paths = AppPaths::from_config_dir(&config_dir);
     let targets = InitTargets {
         bash_profile: temp.path().join(".bashrc"),
+        zsh_profile: temp.path().join(".zshrc"),
         powershell_profile: temp
             .path()
             .join("PowerShell")
@@ -24,6 +25,7 @@ fn init_creates_config_generated_and_profiles() {
     assert_eq!(result.config_file, paths.config_file);
     assert!(paths.config_file.exists());
     assert!(paths.bash_script.exists());
+    assert!(paths.zsh_script.exists());
     assert!(paths.powershell_script.exists());
 
     let bash_profile = fs::read_to_string(&targets.bash_profile).expect("bash profile readable");
@@ -39,6 +41,11 @@ fn init_creates_config_generated_and_profiles() {
         powershell_profile,
         powershell_managed_block(&paths.powershell_script)
     );
+
+    let zsh_profile = fs::read_to_string(&targets.zsh_profile).expect("zsh profile readable");
+    assert!(zsh_profile.contains(MANAGED_BLOCK_START));
+    assert!(zsh_profile.contains(&paths.zsh_script.display().to_string()));
+    assert_eq!(zsh_profile, bash_managed_block(&paths.zsh_script));
 }
 
 #[test]
@@ -48,6 +55,7 @@ fn init_replaces_existing_blocks_without_touching_user_content() {
     let paths = AppPaths::from_config_dir(&config_dir);
     let targets = InitTargets {
         bash_profile: temp.path().join(".bashrc"),
+        zsh_profile: temp.path().join(".zshrc"),
         powershell_profile: temp
             .path()
             .join("PowerShell")
@@ -89,6 +97,10 @@ fn init_replaces_existing_blocks_without_touching_user_content() {
     assert!(powershell_profile.starts_with("Write-Host \"hello\"\n"));
     assert_eq!(powershell_profile.matches(MANAGED_BLOCK_START).count(), 1);
     assert!(!powershell_profile.contains("old ps1"));
+
+    let zsh_profile = fs::read_to_string(&targets.zsh_profile).expect("zsh profile readable");
+    assert!(zsh_profile.starts_with(&bash_managed_block(&paths.zsh_script)));
+    assert_eq!(zsh_profile.matches(MANAGED_BLOCK_START).count(), 1);
 }
 
 #[test]
@@ -98,6 +110,7 @@ fn init_with_shell_bash_only_updates_bash_profile() {
     let paths = AppPaths::from_config_dir(&config_dir);
     let targets = InitTargets {
         bash_profile: temp.path().join(".bashrc"),
+        zsh_profile: temp.path().join(".zshrc"),
         powershell_profile: temp
             .path()
             .join("PowerShell")
@@ -109,8 +122,36 @@ fn init_with_shell_bash_only_updates_bash_profile() {
 
     assert!(paths.config_file.exists());
     assert!(paths.bash_script.exists());
+    assert!(paths.zsh_script.exists());
     assert!(paths.powershell_script.exists());
     assert!(targets.bash_profile.exists());
+    assert!(!targets.zsh_profile.exists());
+    assert!(!targets.powershell_profile.exists());
+}
+
+#[test]
+fn init_with_shell_zsh_only_updates_zsh_profile() {
+    let temp = tempdir().expect("temp dir should be created");
+    let config_dir = temp.path().join("hunming");
+    let paths = AppPaths::from_config_dir(&config_dir);
+    let targets = InitTargets {
+        bash_profile: temp.path().join(".bashrc"),
+        zsh_profile: temp.path().join(".zshrc"),
+        powershell_profile: temp
+            .path()
+            .join("PowerShell")
+            .join("Microsoft.PowerShell_profile.ps1"),
+    };
+
+    init_with_targets_and_shell(&paths, &targets, Some(InitShell::Zsh))
+        .expect("init should succeed");
+
+    assert!(paths.config_file.exists());
+    assert!(paths.bash_script.exists());
+    assert!(paths.zsh_script.exists());
+    assert!(paths.powershell_script.exists());
+    assert!(!targets.bash_profile.exists());
+    assert!(targets.zsh_profile.exists());
     assert!(!targets.powershell_profile.exists());
 }
 
@@ -121,6 +162,7 @@ fn init_with_shell_powershell_only_updates_powershell_profile() {
     let paths = AppPaths::from_config_dir(&config_dir);
     let targets = InitTargets {
         bash_profile: temp.path().join(".bashrc"),
+        zsh_profile: temp.path().join(".zshrc"),
         powershell_profile: temp
             .path()
             .join("PowerShell")
@@ -132,7 +174,9 @@ fn init_with_shell_powershell_only_updates_powershell_profile() {
 
     assert!(paths.config_file.exists());
     assert!(paths.bash_script.exists());
+    assert!(paths.zsh_script.exists());
     assert!(paths.powershell_script.exists());
     assert!(!targets.bash_profile.exists());
+    assert!(!targets.zsh_profile.exists());
     assert!(targets.powershell_profile.exists());
 }

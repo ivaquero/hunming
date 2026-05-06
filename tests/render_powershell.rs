@@ -10,6 +10,7 @@ fn renders_command_based_powershell_functions() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -35,6 +36,7 @@ fn renders_explicit_powershell_functions() {
         Alias {
             description: None,
             command: Vec::new(),
+            tags: vec!["files".into()],
             bash: None,
             powershell: Some("Get-ChildItem -Force".into()),
             forward_args: true,
@@ -63,6 +65,7 @@ fn falls_back_to_command_when_powershell_is_missing() {
         Alias {
             description: None,
             command: vec!["git".into(), "checkout".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -102,6 +105,7 @@ fn respects_forward_args_flag() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: false,
@@ -128,6 +132,7 @@ fn filters_other_platforms() {
         Alias {
             description: None,
             command: vec!["echo".into(), "local".into()],
+            tags: vec!["local".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -139,6 +144,7 @@ fn filters_other_platforms() {
         Alias {
             description: None,
             command: vec!["echo".into(), "remote".into()],
+            tags: vec!["remote".into()],
             bash: None,
             powershell: None,
             forward_args: true,

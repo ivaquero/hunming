@@ -17,6 +17,7 @@ fn remove_deletes_alias_and_updates_scripts() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -28,6 +29,7 @@ fn remove_deletes_alias_and_updates_scripts() {
         Alias {
             description: None,
             command: vec!["git".into(), "checkout".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,

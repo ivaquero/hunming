@@ -19,8 +19,12 @@ pub enum Commands {
     Remove(RemoveArgs),
     /// List known aliases.
     List,
+    /// Show an alias definition.
+    Show(ShowArgs),
     /// Apply the generated scripts.
     Apply(ApplyArgs),
+    /// Generate shell completions.
+    Completions(CompletionsArgs),
     /// Edit the configuration file.
     Edit,
     /// Check the current installation.
@@ -51,6 +55,10 @@ pub struct AddArgs {
     #[arg(long)]
     pub powershell: Option<String>,
 
+    /// Tag to assign to this alias. Repeat to add more tags.
+    #[arg(long = "tag")]
+    pub tags: Vec<String>,
+
     /// Command to run for this alias.
     #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 0..)]
     pub command: Vec<String>,
@@ -61,6 +69,19 @@ pub struct ApplyArgs {
     /// Generate only one shell script.
     #[arg(long, value_enum)]
     pub shell: Option<InitShell>,
+}
+
+#[derive(Debug, Args)]
+pub struct CompletionsArgs {
+    /// Shell to generate completions for.
+    #[arg(value_enum)]
+    pub shell: InitShell,
+}
+
+#[derive(Debug, Args)]
+pub struct ShowArgs {
+    /// Alias name to display.
+    pub name: String,
 }
 
 #[derive(Debug, Args)]

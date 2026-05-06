@@ -16,6 +16,7 @@ fn doctor_reports_expected_checks_and_shadowing() {
     let targets = DoctorTargets {
         bash_rc_profile: temp.path().join(".bashrc"),
         bash_login_profile: temp.path().join(".bash_profile"),
+        zsh_profile: temp.path().join(".zshrc"),
         powershell_profile: temp
             .path()
             .join("PowerShell")
@@ -28,6 +29,7 @@ fn doctor_reports_expected_checks_and_shadowing() {
         Alias {
             description: None,
             command: vec!["ls".into()],
+            tags: vec!["shell".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -39,6 +41,7 @@ fn doctor_reports_expected_checks_and_shadowing() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: Some("git status --short".into()),
             forward_args: true,
@@ -60,6 +63,8 @@ fn doctor_reports_expected_checks_and_shadowing() {
         &bash_managed_block(&paths.bash_script),
     )
     .expect("bashrc should write");
+    write_shell_profile(&targets.zsh_profile, &bash_managed_block(&paths.zsh_script))
+        .expect("zsh profile should write");
     write_shell_profile(
         &targets.powershell_profile,
         &powershell_managed_block(&paths.powershell_script),
@@ -76,6 +81,7 @@ fn doctor_reports_expected_checks_and_shadowing() {
     assert!(report.contains("[✓] config file exists"));
     assert!(report.contains("[✓] generated bash file exists"));
     assert!(report.contains("[✓] ~/.bashrc contains humming managed block"));
+    assert!(report.contains("[✓] ~/.zshrc contains humming managed block"));
     assert!(report.contains("[!] ~/.bash_profile does not source ~/.bashrc"));
     assert!(report.contains("[✓] PowerShell profile contains humming managed block"));
     assert!(report.contains("[!] alias \"ls\" shadows existing command"));
@@ -88,6 +94,7 @@ fn doctor_fix_creates_missing_files() {
     let targets = DoctorTargets {
         bash_rc_profile: temp.path().join(".bashrc"),
         bash_login_profile: temp.path().join(".bash_profile"),
+        zsh_profile: temp.path().join(".zshrc"),
         powershell_profile: temp
             .path()
             .join("PowerShell")
@@ -98,10 +105,13 @@ fn doctor_fix_creates_missing_files() {
 
     assert!(paths.config_file.exists());
     assert!(paths.bash_script.exists());
+    assert!(paths.zsh_script.exists());
     assert!(paths.powershell_script.exists());
     assert!(targets.bash_rc_profile.exists());
+    assert!(targets.zsh_profile.exists());
     assert!(targets.powershell_profile.exists());
     assert!(report.contains("[✓] config file exists"));
     assert!(report.contains("[✓] ~/.bashrc contains humming managed block"));
+    assert!(report.contains("[✓] ~/.zshrc contains humming managed block"));
     assert!(report.contains("[✓] PowerShell profile contains humming managed block"));
 }

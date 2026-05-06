@@ -1,5 +1,6 @@
 use crate::model::{Alias, Config};
 use anyhow::{Result, bail};
+use std::collections::BTreeSet;
 
 pub fn validate_config(config: &Config) -> Result<()> {
     for (name, alias) in &config.aliases {
@@ -24,6 +25,20 @@ pub fn validate_alias(name: &str, alias: &Alias) -> Result<()> {
 
     if !has_command && !has_bash && !has_powershell {
         bail!("alias `{name}` must define command, bash, or powershell");
+    }
+
+    let mut seen_tags = BTreeSet::new();
+    for tag in &alias.tags {
+        let trimmed = tag.trim();
+        if trimmed.is_empty() {
+            bail!("alias `{name}` has an empty tag");
+        }
+        if trimmed != tag {
+            bail!("alias `{name}` has a tag with surrounding whitespace: `{tag}`");
+        }
+        if !seen_tags.insert(tag) {
+            bail!("alias `{name}` has duplicate tag `{tag}`");
+        }
     }
 
     if alias.platforms.is_empty() {

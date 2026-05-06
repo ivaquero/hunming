@@ -10,6 +10,7 @@ fn renders_command_based_bash_functions() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -35,6 +36,7 @@ fn renders_explicit_bash_functions() {
         Alias {
             description: None,
             command: Vec::new(),
+            tags: vec!["files".into()],
             bash: Some("ls -lah".into()),
             powershell: None,
             forward_args: true,
@@ -73,6 +75,7 @@ fn respects_forward_args_flag() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: false,
@@ -96,6 +99,7 @@ fn filters_other_platforms() {
         Alias {
             description: None,
             command: vec!["echo".into(), "local".into()],
+            tags: vec!["local".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -107,6 +111,7 @@ fn filters_other_platforms() {
         Alias {
             description: None,
             command: vec!["echo".into(), "remote".into()],
+            tags: vec!["remote".into()],
             bash: None,
             powershell: None,
             forward_args: true,

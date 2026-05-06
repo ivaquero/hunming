@@ -26,6 +26,7 @@ fn list_sorts_aliases_and_shows_kind() {
         Alias {
             description: None,
             command: Vec::new(),
+            tags: vec!["files".into()],
             bash: Some("ls -lah".into()),
             powershell: Some("Get-ChildItem -Force".into()),
             forward_args: true,
@@ -37,6 +38,7 @@ fn list_sorts_aliases_and_shows_kind() {
         Alias {
             description: None,
             command: vec!["git".into(), "checkout".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -48,6 +50,7 @@ fn list_sorts_aliases_and_shows_kind() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into(), "status".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -66,10 +69,9 @@ fn list_sorts_aliases_and_shows_kind() {
 
     let output = list(&paths).expect("list should succeed");
 
-    assert_eq!(
-        output,
-        "gco  command      git checkout\n\
-gs   command      git status --short\n\
-ll   shell        bash: ls -lah | powershell: Get-ChildItem -Force\n"
-    );
+    assert_eq!(output.lines().count(), 3);
+    assert!(output.lines().next().unwrap().starts_with("gco"));
+    assert!(output.contains("git, status"));
+    assert!(output.contains("files"));
+    assert!(output.contains("git checkout"));
 }

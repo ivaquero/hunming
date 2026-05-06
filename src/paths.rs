@@ -7,6 +7,7 @@ const APP_NAME: &str = "hunming";
 const GENERATED_DIR_NAME: &str = "generated";
 const CONFIG_FILE_NAME: &str = "aliases.toml";
 const BASH_FILE_NAME: &str = "bash.sh";
+const ZSH_FILE_NAME: &str = "zsh.sh";
 const POWERSHELL_FILE_NAME: &str = "powershell.ps1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,6 +16,7 @@ pub struct AppPaths {
     pub config_file: PathBuf,
     pub generated_dir: PathBuf,
     pub bash_script: PathBuf,
+    pub zsh_script: PathBuf,
     pub powershell_script: PathBuf,
 }
 
@@ -37,6 +39,7 @@ impl AppPaths {
         Self {
             config_file: config_dir.join(CONFIG_FILE_NAME),
             bash_script: generated_dir.join(BASH_FILE_NAME),
+            zsh_script: generated_dir.join(ZSH_FILE_NAME),
             powershell_script: generated_dir.join(POWERSHELL_FILE_NAME),
             generated_dir,
             config_dir,

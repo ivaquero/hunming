@@ -26,6 +26,9 @@ pub struct Alias {
     #[serde(default)]
     pub command: Vec<String>,
 
+    #[serde(default)]
+    pub tags: Vec<String>,
+
     pub bash: Option<String>,
     pub powershell: Option<String>,
 
@@ -58,6 +61,7 @@ impl Default for Alias {
         Self {
             description: None,
             command: Vec::new(),
+            tags: Vec::new(),
             bash: None,
             powershell: None,
             forward_args: true,

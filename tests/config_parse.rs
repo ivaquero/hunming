@@ -9,6 +9,7 @@ version = 1
 [aliases.gs]
 description = "Git status short"
 command = ["git", "status", "--short"]
+tags = ["git", "status"]
 
 [aliases.gco]
 command = ["git", "checkout"]
@@ -39,6 +40,7 @@ bash = "ipconfig getifaddr en0"
         config.aliases["gs"].description.as_deref(),
         Some("Git status short")
     );
+    assert_eq!(config.aliases["gs"].tags, vec!["git", "status"]);
     assert!(config.aliases["gco"].forward_args);
     assert_eq!(config.aliases["ll"].bash.as_deref(), Some("ls -lah"));
     assert_eq!(
@@ -57,6 +59,7 @@ fn roundtrip_config() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,

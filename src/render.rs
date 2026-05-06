@@ -19,6 +19,10 @@ pub fn render_bash(config: &Config) -> String {
     output
 }
 
+pub fn render_zsh(config: &Config) -> String {
+    render_bash(config)
+}
+
 pub fn render_powershell(config: &Config) -> String {
     let mut output = String::new();
     let mut first = true;

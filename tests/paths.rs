@@ -23,6 +23,10 @@ fn builds_unix_paths_from_home_directory() {
         PathBuf::from("/Users/alice/.config/hunming/generated/bash.sh")
     );
     assert_eq!(
+        paths.zsh_script,
+        PathBuf::from("/Users/alice/.config/hunming/generated/zsh.sh")
+    );
+    assert_eq!(
         paths.powershell_script,
         PathBuf::from("/Users/alice/.config/hunming/generated/powershell.ps1")
     );
@@ -47,6 +51,10 @@ fn builds_windows_paths_from_appdata_directory() {
     assert_eq!(
         paths.bash_script,
         PathBuf::from(r"C:\Users\alice\AppData\Roaming/hunming/generated/bash.sh")
+    );
+    assert_eq!(
+        paths.zsh_script,
+        PathBuf::from(r"C:\Users\alice\AppData\Roaming/hunming/generated/zsh.sh")
     );
     assert_eq!(
         paths.powershell_script,

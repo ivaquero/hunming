@@ -16,6 +16,7 @@ fn add_creates_new_alias_and_updates_scripts() {
         "gs".to_string(),
         None,
         None,
+        Vec::new(),
         vec!["git".into(), "status".into(), "--short".into()],
         false,
     )
@@ -26,6 +27,7 @@ fn add_creates_new_alias_and_updates_scripts() {
         config.aliases["gs"].command,
         vec!["git", "status", "--short"]
     );
+    assert!(config.aliases["gs"].tags.is_empty());
     assert_eq!(
         fs::read_to_string(&paths.bash_script).expect("bash script should exist"),
         "gs() {\n  git status --short \"$@\"\n}\n"
@@ -47,6 +49,7 @@ fn add_rejects_existing_alias_without_force() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -68,6 +71,7 @@ fn add_rejects_existing_alias_without_force() {
         "gs".to_string(),
         None,
         None,
+        Vec::new(),
         vec!["git".into(), "status".into(), "--short".into()],
         false,
     )
@@ -90,6 +94,7 @@ fn add_replaces_existing_alias_with_force() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into()],
+            tags: vec!["git".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -111,6 +116,7 @@ fn add_replaces_existing_alias_with_force() {
         "gs".to_string(),
         None,
         None,
+        Vec::new(),
         vec!["git".into(), "status".into(), "--short".into()],
         true,
     )
@@ -137,6 +143,7 @@ fn add_supports_explicit_shell_commands() {
         "ll".to_string(),
         Some("ls -lah".into()),
         Some("Get-ChildItem -Force".into()),
+        vec!["files".into()],
         Vec::new(),
         false,
     )
@@ -144,6 +151,7 @@ fn add_supports_explicit_shell_commands() {
 
     let config = load_config(&paths).expect("config should load");
     assert_eq!(config.aliases["ll"].bash.as_deref(), Some("ls -lah"));
+    assert_eq!(config.aliases["ll"].tags, vec!["files"]);
     assert_eq!(
         config.aliases["ll"].powershell.as_deref(),
         Some("Get-ChildItem -Force")

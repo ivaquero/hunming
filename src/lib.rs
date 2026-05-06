@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod completion;
 pub mod config;
 pub mod fs;
 pub mod install;

@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "version to build"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: hunming-linux
+            binary_path: target/release/hunming
+          - os: macos-latest
+            artifact_name: hunming-macos
+            binary_path: target/release/hunming
+          - os: windows-latest
+            artifact_name: hunming-windows
+            binary_path: target/release/hunming.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.binary_path }}
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Stage release assets
+        run: |
+          mkdir -p release
+          cp release-assets/hunming-linux/hunming release/hunming-linux
+          cp release-assets/hunming-macos/hunming release/hunming-macos
+          cp release-assets/hunming-windows/hunming.exe release/hunming-windows.exe
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}',
+            inputs.version) || github.ref_name }}
+          generate_release_notes: true
+          files: release/*

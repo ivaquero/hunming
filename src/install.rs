@@ -1,11 +1,12 @@
 use crate::config::default_config;
 use crate::config::load_config;
+use crate::config::load_config_from_path;
 use crate::config::save_config;
 use crate::fs::atomic_write;
 use crate::model::{Alias, Config};
 use crate::paths::AppPaths;
-use crate::render::{render_bash, render_powershell};
-use crate::validation::{validate_alias_name, validate_config};
+use crate::render::{render_bash, render_powershell, render_zsh};
+use crate::validation::validate_alias_name;
 use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
 use directories::BaseDirs;
@@ -22,6 +23,7 @@ pub const MANAGED_BLOCK_END: &str = "# <<< hunming init <<<";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApplyResult {
     pub bash_script: PathBuf,
+    pub zsh_script: PathBuf,
     pub powershell_script: PathBuf,
 }
 
@@ -29,14 +31,17 @@ pub struct ApplyResult {
 pub struct InitResult {
     pub config_file: PathBuf,
     pub bash_profile: PathBuf,
+    pub zsh_profile: PathBuf,
     pub powershell_profile: PathBuf,
     pub bash_script: PathBuf,
+    pub zsh_script: PathBuf,
     pub powershell_script: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InitTargets {
     pub bash_profile: PathBuf,
+    pub zsh_profile: PathBuf,
     pub powershell_profile: PathBuf,
 }
 
@@ -44,6 +49,7 @@ pub struct InitTargets {
 pub struct DoctorTargets {
     pub bash_rc_profile: PathBuf,
     pub bash_login_profile: PathBuf,
+    pub zsh_profile: PathBuf,
     pub powershell_profile: PathBuf,
 }
 
@@ -51,6 +57,7 @@ pub struct DoctorTargets {
 #[value(rename_all = "lower")]
 pub enum InitShell {
     Bash,
+    Zsh,
     Powershell,
 }
 
@@ -63,6 +70,11 @@ pub fn apply(paths: &AppPaths, shell: Option<InitShell>) -> Result<ApplyResult> 
     } else {
         None
     };
+    let zsh_script = if shell.is_none() || matches!(shell, Some(InitShell::Zsh)) {
+        Some(render_zsh(&config))
+    } else {
+        None
+    };
     let powershell_script = if shell.is_none() || matches!(shell, Some(InitShell::Powershell)) {
         Some(render_powershell(&config))
     } else {
@@ -72,12 +84,16 @@ pub fn apply(paths: &AppPaths, shell: Option<InitShell>) -> Result<ApplyResult> 
     if let Some(script) = &bash_script {
         atomic_write(&paths.bash_script, script)?;
     }
+    if let Some(script) = &zsh_script {
+        atomic_write(&paths.zsh_script, script)?;
+    }
     if let Some(script) = &powershell_script {
         atomic_write(&paths.powershell_script, script)?;
     }
 
     Ok(ApplyResult {
         bash_script: paths.bash_script.clone(),
+        zsh_script: paths.zsh_script.clone(),
         powershell_script: paths.powershell_script.clone(),
     })
 }
@@ -108,6 +124,7 @@ pub fn add(
     name: String,
     bash: Option<String>,
     powershell: Option<String>,
+    tags: Vec<String>,
     command: Vec<String>,
     force: bool,
 ) -> Result<ApplyResult> {
@@ -123,6 +140,7 @@ pub fn add(
         Alias {
             description: None,
             command,
+            tags: normalize_tags(tags),
             bash: normalize_optional(bash),
             powershell: normalize_optional(powershell),
             forward_args: true,
@@ -208,14 +226,41 @@ pub fn list(paths: &AppPaths) -> Result<String> {
         .map(|name| name.len())
         .max()
         .unwrap_or(0);
+    let kind_width = config
+        .aliases
+        .values()
+        .map(|alias| describe_alias(alias).0.len())
+        .max()
+        .unwrap_or(0);
+    let tags_width = config
+        .aliases
+        .values()
+        .map(|alias| format_tags(&alias.tags).len())
+        .max()
+        .unwrap_or(1)
+        .max(4);
 
     let mut output = String::new();
     for (name, alias) in &config.aliases {
         let (kind, detail) = describe_alias(alias);
-        output.push_str(&format!("{name:<name_width$}  {kind:<11}  {detail}\n",));
+        let tags = format_tags(&alias.tags);
+        output.push_str(&format!(
+            "{name:<name_width$}  {kind:<kind_width$}  {tags:<tags_width$}  {detail}\n",
+        ));
     }
 
     Ok(output)
+}
+
+pub fn show(paths: &AppPaths, name: String) -> Result<String> {
+    validate_alias_name(&name)?;
+    let config = load_config(paths)?;
+    let alias = config
+        .aliases
+        .get(&name)
+        .ok_or_else(|| anyhow::anyhow!("alias `{name}` does not exist"))?;
+
+    Ok(render_alias_definition(&name, alias))
 }
 
 pub fn init(paths: &AppPaths, shell: Option<InitShell>) -> Result<InitResult> {
@@ -248,6 +293,10 @@ pub fn init_with_targets_and_shell(
         )?;
     }
 
+    if shell.is_none() || matches!(shell, Some(InitShell::Zsh)) {
+        write_shell_profile(&targets.zsh_profile, &bash_managed_block(&paths.zsh_script))?;
+    }
+
     if shell.is_none() || matches!(shell, Some(InitShell::Powershell)) {
         write_shell_profile(
             &targets.powershell_profile,
@@ -258,8 +307,10 @@ pub fn init_with_targets_and_shell(
     Ok(InitResult {
         config_file: paths.config_file.clone(),
         bash_profile: targets.bash_profile.clone(),
+        zsh_profile: targets.zsh_profile.clone(),
         powershell_profile: targets.powershell_profile.clone(),
         bash_script: apply_result.bash_script,
+        zsh_script: apply_result.zsh_script,
         powershell_script: apply_result.powershell_script,
     })
 }
@@ -291,6 +342,12 @@ pub fn doctor_with_targets(paths: &AppPaths, targets: &DoctorTargets, fix: bool)
         report.warn("generated bash file missing");
     }
 
+    if paths.zsh_script.exists() {
+        report.ok("generated zsh file exists");
+    } else {
+        report.warn("generated zsh file missing");
+    }
+
     if paths.powershell_script.exists() {
         report.ok("generated powershell file exists");
     } else {
@@ -302,6 +359,13 @@ pub fn doctor_with_targets(paths: &AppPaths, targets: &DoctorTargets, fix: bool)
         "~/.bashrc",
         &targets.bash_rc_profile,
         &bash_managed_block(&paths.bash_script),
+    );
+
+    check_profile_block(
+        &mut report,
+        "~/.zshrc",
+        &targets.zsh_profile,
+        &bash_managed_block(&paths.zsh_script),
     );
 
     if profile_sources_bash_rc(&targets.bash_login_profile) {
@@ -457,6 +521,113 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
     ("command", String::new())
 }
 
+fn render_alias_definition(name: &str, alias: &Alias) -> String {
+    let mut output = String::new();
+    output.push_str(&format!("[aliases.{name}]\n"));
+
+    if let Some(description) = &alias.description {
+        output.push_str("description = ");
+        output.push_str(&toml_string(description));
+        output.push('\n');
+    }
+
+    if !alias.command.is_empty() {
+        output.push_str("command = ");
+        output.push_str(&toml_strings(&alias.command));
+        output.push('\n');
+    }
+
+    if !alias.tags.is_empty() {
+        output.push_str("tags = ");
+        output.push_str(&toml_strings(&alias.tags));
+        output.push('\n');
+    }
+
+    if let Some(bash) = &alias.bash {
+        output.push_str("bash = ");
+        output.push_str(&toml_string(bash));
+        output.push('\n');
+    }
+
+    if let Some(powershell) = &alias.powershell {
+        output.push_str("powershell = ");
+        output.push_str(&toml_string(powershell));
+        output.push('\n');
+    }
+
+    if !alias.forward_args {
+        output.push_str("forward_args = false\n");
+    }
+
+    if !alias.platforms.is_empty() {
+        output.push_str("platforms = ");
+        output.push_str(&toml_platforms(&alias.platforms));
+        output.push('\n');
+    }
+
+    output
+}
+
+fn toml_string(value: &str) -> String {
+    format!("{value:?}")
+}
+
+fn toml_strings(values: &[String]) -> String {
+    let mut output = String::from("[");
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 {
+            output.push_str(", ");
+        }
+        output.push_str(&toml_string(value));
+    }
+    output.push(']');
+    output
+}
+
+fn format_tags(tags: &[String]) -> String {
+    if tags.is_empty() {
+        "-".to_string()
+    } else {
+        tags.join(", ")
+    }
+}
+
+fn toml_platforms(values: &[crate::model::Platform]) -> String {
+    let mut output = String::from("[");
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 {
+            output.push_str(", ");
+        }
+        let item = match value {
+            crate::model::Platform::Windows => "\"windows\"",
+            crate::model::Platform::Macos => "\"macos\"",
+            crate::model::Platform::Linux => "\"linux\"",
+        };
+        output.push_str(item);
+    }
+    output.push(']');
+    output
+}
+
+fn normalize_tags(tags: Vec<String>) -> Vec<String> {
+    let mut normalized = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+
+    for tag in tags {
+        let tag = tag.trim();
+        if tag.is_empty() {
+            continue;
+        }
+
+        let tag = tag.to_string();
+        if seen.insert(tag.clone()) {
+            normalized.push(tag);
+        }
+    }
+
+    normalized
+}
+
 fn repair_doctor(
     paths: &AppPaths,
     targets: &DoctorTargets,
@@ -497,31 +668,10 @@ fn inspect_config(paths: &AppPaths) -> ConfigState {
         return ConfigState::Missing;
     }
 
-    let content = match fs::read_to_string(&paths.config_file) {
-        Ok(content) => content,
-        Err(err) => {
-            return ConfigState::Invalid(format!(
-                "failed to read config file at {}: {err}",
-                paths.config_file.display()
-            ));
-        }
-    };
-
-    let config: Config = match toml::from_str(&content) {
-        Ok(config) => config,
-        Err(err) => {
-            return ConfigState::Invalid(format!(
-                "failed to parse config file at {}: {err}",
-                paths.config_file.display()
-            ));
-        }
-    };
-
-    if let Err(err) = validate_config(&config) {
-        return ConfigState::Invalid(err.to_string());
+    match load_config_from_path(&paths.config_file) {
+        Ok(config) => ConfigState::Valid(config),
+        Err(err) => ConfigState::Invalid(err.to_string()),
     }
-
-    ConfigState::Valid(config)
 }
 
 fn check_profile_block(report: &mut DoctorReport, label: &str, path: &Path, block: &str) {
@@ -642,6 +792,7 @@ fn default_init_targets() -> Result<InitTargets> {
     let home_dir = base_dirs.home_dir();
 
     let bash_profile = home_dir.join(".bashrc");
+    let zsh_profile = home_dir.join(".zshrc");
     let powershell_profile = if cfg!(windows) {
         home_dir
             .join("Documents")
@@ -656,6 +807,7 @@ fn default_init_targets() -> Result<InitTargets> {
 
     Ok(InitTargets {
         bash_profile,
+        zsh_profile,
         powershell_profile,
     })
 }
@@ -667,6 +819,7 @@ fn default_doctor_targets() -> Result<DoctorTargets> {
 
     let bash_rc_profile = home_dir.join(".bashrc");
     let bash_login_profile = home_dir.join(".bash_profile");
+    let zsh_profile = home_dir.join(".zshrc");
     let powershell_profile = if cfg!(windows) {
         home_dir
             .join("Documents")
@@ -682,6 +835,7 @@ fn default_doctor_targets() -> Result<DoctorTargets> {
     Ok(DoctorTargets {
         bash_rc_profile,
         bash_login_profile,
+        zsh_profile,
         powershell_profile,
     })
 }

@@ -38,6 +38,7 @@ fn save_and_load_roundtrip_config() {
         Alias {
             description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
+            tags: vec!["git".into(), "status".into()],
             bash: None,
             powershell: None,
             forward_args: true,
@@ -67,6 +68,7 @@ version = 1
 
 [aliases.ll]
 bash = "ls -lah"
+tags = ["list"]
 "#;
     fs::write(&paths.config_file, original).expect("seed config should be written");
 
@@ -74,7 +76,81 @@ bash = "ls -lah"
 
     assert_eq!(loaded.version, 1);
     assert_eq!(loaded.aliases["ll"].bash.as_deref(), Some("ls -lah"));
+    assert_eq!(loaded.aliases["ll"].tags, vec!["list"]);
 
     let current = fs::read_to_string(&paths.config_file).expect("config should still be readable");
     assert_eq!(current, original);
+}
+
+#[test]
+fn load_config_expands_includes_from_relative_files() {
+    let temp = tempdir().expect("temp dir should be created");
+    let paths = AppPaths::from_config_dir(temp.path().join("hunming"));
+    paths.ensure_config_dir().expect("config dir should exist");
+
+    let root = r#"
+version = 1
+include = ["shared.toml", "more.toml"]
+
+[aliases.root]
+command = ["git", "status"]
+tags = ["git"]
+"#;
+    let shared = r#"
+version = 1
+
+[aliases.shared]
+command = ["git", "checkout"]
+tags = ["git"]
+"#;
+    let more = r#"
+version = 1
+
+[aliases.more]
+bash = "ls -lah"
+tags = ["files"]
+"#;
+
+    fs::write(&paths.config_file, root).expect("root config should be written");
+    fs::write(paths.config_dir.join("shared.toml"), shared)
+        .expect("shared config should be written");
+    fs::write(paths.config_dir.join("more.toml"), more).expect("more config should be written");
+
+    let config = load_config(&paths).expect("config should load");
+
+    assert_eq!(config.aliases["root"].command, vec!["git", "status"]);
+    assert_eq!(config.aliases["root"].tags, vec!["git"]);
+    assert_eq!(config.aliases["shared"].command, vec!["git", "checkout"]);
+    assert_eq!(config.aliases["shared"].tags, vec!["git"]);
+    assert_eq!(config.aliases["more"].bash.as_deref(), Some("ls -lah"));
+    assert_eq!(config.aliases["more"].tags, vec!["files"]);
+}
+
+#[test]
+fn load_config_rejects_duplicate_aliases_across_includes() {
+    let temp = tempdir().expect("temp dir should be created");
+    let paths = AppPaths::from_config_dir(temp.path().join("hunming"));
+    paths.ensure_config_dir().expect("config dir should exist");
+
+    let root = r#"
+version = 1
+include = ["shared.toml"]
+
+[aliases.root]
+command = ["git", "status"]
+"#;
+    let shared = r#"
+version = 1
+
+[aliases.root]
+command = ["git", "checkout"]
+"#;
+
+    fs::write(&paths.config_file, root).expect("root config should be written");
+    fs::write(paths.config_dir.join("shared.toml"), shared)
+        .expect("shared config should be written");
+
+    let error = load_config(&paths).expect_err("config should reject duplicates");
+
+    assert!(error.to_string().contains("defined more than once"));
 }
