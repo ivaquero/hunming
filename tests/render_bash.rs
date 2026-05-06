@@ -1,5 +1,7 @@
 use hunming::model::{Alias, Config};
+use hunming::model::Profile;
 use hunming::render::render_bash;
+use hunming::render::render_bash_with_profile;
 use std::collections::BTreeMap;
 
 #[test]
@@ -15,6 +17,7 @@ fn renders_command_based_bash_functions() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -41,6 +44,7 @@ fn renders_explicit_bash_functions() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -80,6 +84,7 @@ fn respects_forward_args_flag() {
             powershell: None,
             forward_args: false,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -104,6 +109,7 @@ fn filters_other_platforms() {
             powershell: None,
             forward_args: true,
             platforms: vec![current_platform()],
+            profile: None,
         },
     );
     aliases.insert(
@@ -116,6 +122,7 @@ fn filters_other_platforms() {
             powershell: None,
             forward_args: true,
             platforms: vec![other_platform()],
+            profile: None,
         },
     );
 
@@ -125,6 +132,51 @@ fn filters_other_platforms() {
     };
 
     assert_eq!(render_bash(&config), "local() {\n  echo local \"$@\"\n}\n");
+}
+
+#[test]
+fn filters_other_profiles() {
+    let mut aliases = BTreeMap::new();
+    aliases.insert(
+        "work".to_string(),
+        Alias {
+            description: None,
+            command: vec!["echo".into(), "work".into()],
+            tags: vec!["work".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
+            profile: Some(Profile::Work),
+        },
+    );
+    aliases.insert(
+        "personal".to_string(),
+        Alias {
+            description: None,
+            command: vec!["echo".into(), "personal".into()],
+            tags: vec!["personal".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
+            profile: Some(Profile::Personal),
+        },
+    );
+
+    let config = Config {
+        version: 1,
+        aliases,
+    };
+
+    assert_eq!(
+        render_bash_with_profile(&config, Some(Profile::Work)),
+        "work() {\n  echo work \"$@\"\n}\n"
+    );
+    assert_eq!(
+        render_bash_with_profile(&config, Some(Profile::Personal)),
+        "personal() {\n  echo personal \"$@\"\n}\n"
+    );
 }
 
 fn current_platform() -> hunming::model::Platform {

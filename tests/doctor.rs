@@ -34,6 +34,7 @@ fn doctor_reports_expected_checks_and_shadowing() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
     aliases.insert(
@@ -46,6 +47,7 @@ fn doctor_reports_expected_checks_and_shadowing() {
             powershell: Some("git status --short".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 

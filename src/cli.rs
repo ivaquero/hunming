@@ -1,4 +1,5 @@
 use crate::install::InitShell;
+use crate::model::Profile;
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -58,6 +59,10 @@ pub struct AddArgs {
     /// PowerShell command to run for this alias.
     #[arg(long)]
     pub powershell: Option<String>,
+
+    /// Work or personal profile to assign to this alias.
+    #[arg(long, value_enum)]
+    pub profile: Option<Profile>,
 
     /// Tag to assign to this alias. Repeat to add more tags.
     #[arg(long = "tag")]

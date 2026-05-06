@@ -44,6 +44,13 @@ fn backup_and_restore_selected_profiles() {
 
     fs::write(&targets.bash_profile, "bash before\n").expect("bash profile should be seeded");
     fs::write(&targets.zsh_profile, "zsh before\n").expect("zsh profile should be seeded");
+    fs::create_dir_all(
+        targets
+            .powershell_profile
+            .parent()
+            .expect("powershell profile parent should exist"),
+    )
+    .expect("powershell profile dir should be created");
     fs::write(&targets.powershell_profile, "powershell before\n")
         .expect("powershell profile should be seeded");
 

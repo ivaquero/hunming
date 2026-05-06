@@ -3,7 +3,7 @@ use crate::config::load_config;
 use crate::config::load_config_from_path;
 use crate::config::save_config;
 use crate::fs::atomic_write;
-use crate::model::{Alias, Config};
+use crate::model::{Alias, Config, Profile};
 use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell, render_zsh};
 use crate::validation::validate_alias_name;
@@ -189,6 +189,7 @@ pub fn add(
     name: String,
     bash: Option<String>,
     powershell: Option<String>,
+    profile: Option<Profile>,
     tags: Vec<String>,
     command: Vec<String>,
     force: bool,
@@ -210,6 +211,7 @@ pub fn add(
             powershell: normalize_optional(powershell),
             forward_args: true,
             platforms: Vec::new(),
+            profile,
         },
     );
 
@@ -586,12 +588,17 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
         .powershell
         .as_ref()
         .is_some_and(|value| !value.trim().is_empty());
+    let profile = alias.profile.map(format_profile);
 
     if has_bash && has_powershell {
         return (
             "shell",
             format!(
-                "bash: {} | powershell: {}",
+                "{}bash: {} | powershell: {}",
+                profile
+                    .as_ref()
+                    .map(|value| format!("profile: {value} | "))
+                    .unwrap_or_default(),
                 alias.bash.as_deref().unwrap_or_default(),
                 alias.powershell.as_deref().unwrap_or_default()
             ),
@@ -599,16 +606,13 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
     }
 
     if has_bash {
-        return (
-            "bash",
-            alias.bash.as_deref().unwrap_or_default().to_string(),
-        );
+        return ("bash", describe_with_profile(alias.bash.as_deref(), profile));
     }
 
     if has_powershell {
         return (
             "powershell",
-            alias.powershell.as_deref().unwrap_or_default().to_string(),
+            describe_with_profile(alias.powershell.as_deref(), profile),
         );
     }
 
@@ -617,10 +621,16 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
         if !alias.forward_args {
             detail.push_str(" (no args)");
         }
+        if let Some(profile) = profile {
+            detail = format!("profile: {profile} | {detail}");
+        }
         return ("command", detail);
     }
 
-    ("command", String::new())
+    (
+        "command",
+        profile.map_or_else(String::new, |profile| format!("profile: {profile}")),
+    )
 }
 
 fn render_alias_definition(name: &str, alias: &Alias) -> String {
@@ -642,6 +652,12 @@ fn render_alias_definition(name: &str, alias: &Alias) -> String {
     if !alias.tags.is_empty() {
         output.push_str("tags = ");
         output.push_str(&toml_strings(&alias.tags));
+        output.push('\n');
+    }
+
+    if let Some(profile) = alias.profile {
+        output.push_str("profile = ");
+        output.push_str(&toml_profile(profile));
         output.push('\n');
     }
 
@@ -709,6 +725,30 @@ fn toml_platforms(values: &[crate::model::Platform]) -> String {
     }
     output.push(']');
     output
+}
+
+fn toml_profile(profile: Profile) -> String {
+    match profile {
+        Profile::Work => toml_string("work"),
+        Profile::Personal => toml_string("personal"),
+    }
+}
+
+fn format_profile(profile: Profile) -> String {
+    match profile {
+        Profile::Work => "work".to_string(),
+        Profile::Personal => "personal".to_string(),
+    }
+}
+
+fn describe_with_profile(detail: Option<&str>, profile: Option<String>) -> String {
+    let detail = detail.unwrap_or_default();
+
+    match profile {
+        Some(profile) if detail.is_empty() => format!("profile: {profile}"),
+        Some(profile) => format!("profile: {profile} | {detail}"),
+        None => detail.to_string(),
+    }
 }
 
 fn normalize_tags(tags: Vec<String>) -> Vec<String> {

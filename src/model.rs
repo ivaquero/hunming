@@ -1,3 +1,5 @@
+use clap::ValueEnum;
+use std::env;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -16,6 +18,14 @@ pub enum Platform {
     Windows,
     Macos,
     Linux,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "lowercase")]
+#[value(rename_all = "lower")]
+pub enum Profile {
+    Work,
+    Personal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,6 +47,9 @@ pub struct Alias {
 
     #[serde(default)]
     pub platforms: Vec<Platform>,
+
+    #[serde(default)]
+    pub profile: Option<Profile>,
 }
 
 const fn default_version() -> u32 {
@@ -66,6 +79,7 @@ impl Default for Alias {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         }
     }
 }
@@ -85,5 +99,30 @@ impl Platform {
 impl Alias {
     pub fn is_active_for_current_platform(&self) -> bool {
         self.platforms.is_empty() || self.platforms.contains(&Platform::current())
+    }
+
+    pub fn is_active_for_current_profile(&self) -> bool {
+        self.is_active_for_profile(Profile::current())
+    }
+
+    pub fn is_active_for_profile(&self, profile: Option<Profile>) -> bool {
+        self.profile.is_none() || profile.is_none_or(|profile| self.profile == Some(profile))
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.is_active_for_current_platform() && self.is_active_for_current_profile()
+    }
+}
+
+impl Profile {
+    pub fn current() -> Option<Self> {
+        let value = env::var("HUNMING_PROFILE").ok()?;
+        let value = value.trim().to_ascii_lowercase();
+
+        match value.as_str() {
+            "work" => Some(Self::Work),
+            "personal" => Some(Self::Personal),
+            _ => None,
+        }
     }
 }

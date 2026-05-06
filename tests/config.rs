@@ -43,6 +43,7 @@ fn save_and_load_roundtrip_config() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 

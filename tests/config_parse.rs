@@ -10,6 +10,7 @@ version = 1
 description = "Git status short"
 command = ["git", "status", "--short"]
 tags = ["git", "status"]
+profile = "work"
 
 [aliases.gco]
 command = ["git", "checkout"]
@@ -26,6 +27,7 @@ powershell = "Clear-DnsClientCache"
 [aliases.ip]
 platforms = ["macos"]
 bash = "ipconfig getifaddr en0"
+profile = "personal"
 "#;
 
     let config: Config = toml::from_str(input).expect("config should deserialize");
@@ -41,6 +43,7 @@ bash = "ipconfig getifaddr en0"
         Some("Git status short")
     );
     assert_eq!(config.aliases["gs"].tags, vec!["git", "status"]);
+    assert_eq!(config.aliases["gs"].profile, Some(hunming::model::Profile::Work));
     assert!(config.aliases["gco"].forward_args);
     assert_eq!(config.aliases["ll"].bash.as_deref(), Some("ls -lah"));
     assert_eq!(
@@ -49,6 +52,10 @@ bash = "ipconfig getifaddr en0"
     );
     assert_eq!(config.aliases["flushdns"].platforms.len(), 1);
     assert_eq!(config.aliases["ip"].platforms.len(), 1);
+    assert_eq!(
+        config.aliases["ip"].profile,
+        Some(hunming::model::Profile::Personal)
+    );
 }
 
 #[test]
@@ -64,6 +71,7 @@ fn roundtrip_config() {
             powershell: None,
             forward_args: true,
             platforms: Vec::new(),
+            profile: Some(hunming::model::Profile::Work),
         },
     );
 

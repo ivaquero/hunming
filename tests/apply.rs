@@ -22,6 +22,7 @@ fn apply_creates_scripts_for_existing_config() {
             powershell: Some("git status --short".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -89,6 +90,7 @@ fn apply_with_shell_bash_only_updates_bash_script() {
             powershell: Some("git status --short".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -133,6 +135,7 @@ fn apply_with_shell_powershell_only_updates_powershell_script() {
             powershell: Some("git status --short".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 
@@ -177,6 +180,7 @@ fn apply_with_shell_zsh_only_updates_zsh_script() {
             powershell: Some("git status --short".into()),
             forward_args: true,
             platforms: Vec::new(),
+            profile: None,
         },
     );
 

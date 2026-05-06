@@ -1,12 +1,16 @@
-use crate::model::{Alias, Config};
+use crate::model::{Alias, Config, Profile};
 use std::fmt::Write as _;
 
 pub fn render_bash(config: &Config) -> String {
+    render_bash_with_profile(config, Profile::current())
+}
+
+pub fn render_bash_with_profile(config: &Config, profile: Option<Profile>) -> String {
     let mut output = String::new();
     let mut first = true;
 
     for (name, alias) in &config.aliases {
-        if let Some(function) = render_bash_function(name, alias) {
+        if let Some(function) = render_bash_function(name, alias, profile) {
             if !first {
                 output.push('\n');
                 output.push('\n');
@@ -24,11 +28,15 @@ pub fn render_zsh(config: &Config) -> String {
 }
 
 pub fn render_powershell(config: &Config) -> String {
+    render_powershell_with_profile(config, Profile::current())
+}
+
+pub fn render_powershell_with_profile(config: &Config, profile: Option<Profile>) -> String {
     let mut output = String::new();
     let mut first = true;
 
     for (name, alias) in &config.aliases {
-        if let Some(function) = render_powershell_function(name, alias) {
+        if let Some(function) = render_powershell_function(name, alias, profile) {
             if !first {
                 output.push('\n');
                 output.push('\n');
@@ -41,8 +49,8 @@ pub fn render_powershell(config: &Config) -> String {
     output
 }
 
-fn render_bash_function(name: &str, alias: &Alias) -> Option<String> {
-    if !alias.is_active_for_current_platform() {
+fn render_bash_function(name: &str, alias: &Alias, profile: Option<Profile>) -> Option<String> {
+    if !alias.is_active_for_current_platform() || !alias.is_active_for_profile(profile) {
         return None;
     }
 
@@ -69,8 +77,12 @@ fn render_bash_function(name: &str, alias: &Alias) -> Option<String> {
     Some(output)
 }
 
-fn render_powershell_function(name: &str, alias: &Alias) -> Option<String> {
-    if !alias.is_active_for_current_platform() {
+fn render_powershell_function(
+    name: &str,
+    alias: &Alias,
+    profile: Option<Profile>,
+) -> Option<String> {
+    if !alias.is_active_for_current_platform() || !alias.is_active_for_profile(profile) {
         return None;
     }
 

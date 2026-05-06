@@ -19,6 +19,7 @@ fn main() -> Result<()> {
                 args.name,
                 args.bash,
                 args.powershell,
+                args.profile,
                 args.tags,
                 args.command,
                 args.force,
