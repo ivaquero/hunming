@@ -43,7 +43,10 @@ profile = "personal"
         Some("Git status short")
     );
     assert_eq!(config.aliases["gs"].tags, vec!["git", "status"]);
-    assert_eq!(config.aliases["gs"].profile, Some(hunming::model::Profile::Work));
+    assert_eq!(
+        config.aliases["gs"].profile,
+        Some(hunming::model::Profile::Work)
+    );
     assert!(config.aliases["gco"].forward_args);
     assert_eq!(config.aliases["ll"].bash.as_deref(), Some("ls -lah"));
     assert_eq!(

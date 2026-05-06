@@ -1,7 +1,7 @@
 use clap::ValueEnum;
-use std::env;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::env;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -20,7 +20,9 @@ pub enum Platform {
     Linux,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, ValueEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, ValueEnum,
+)]
 #[serde(rename_all = "lowercase")]
 #[value(rename_all = "lower")]
 pub enum Profile {

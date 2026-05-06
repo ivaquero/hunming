@@ -42,10 +42,10 @@ fn show_renders_alias_definition() {
 description = \"List files\"\n\
 command = [\"ls\", \"-lah\"]\n\
 tags = [\"files\"]\n\
+profile = \"work\"\n\
 bash = \"ls -lah\"\n\
 powershell = \"Get-ChildItem -Force\"\n\
 forward_args = false\n\
-profile = \"work\"\n\
 platforms = [\"linux\"]\n"
     );
 }

@@ -606,7 +606,10 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
     }
 
     if has_bash {
-        return ("bash", describe_with_profile(alias.bash.as_deref(), profile));
+        return (
+            "bash",
+            describe_with_profile(alias.bash.as_deref(), profile),
+        );
     }
 
     if has_powershell {
