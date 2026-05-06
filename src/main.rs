@@ -30,11 +30,21 @@ fn main() -> Result<()> {
             let paths = AppPaths::new()?;
             print!("{}", install::list(&paths)?);
         }
-        hunming::cli::Commands::Apply => {
+        hunming::cli::Commands::Apply(args) => {
             let paths = AppPaths::new()?;
-            let result = install::apply(&paths)?;
-            println!("{}", result.bash_script.display());
-            println!("{}", result.powershell_script.display());
+            let result = install::apply(&paths, args.shell)?;
+            match args.shell {
+                Some(hunming::install::InitShell::Bash) => {
+                    println!("{}", result.bash_script.display());
+                }
+                Some(hunming::install::InitShell::Powershell) => {
+                    println!("{}", result.powershell_script.display());
+                }
+                None => {
+                    println!("{}", result.bash_script.display());
+                    println!("{}", result.powershell_script.display());
+                }
+            }
         }
     }
 

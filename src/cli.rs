@@ -20,7 +20,7 @@ pub enum Commands {
     /// List known aliases.
     List,
     /// Apply the generated scripts.
-    Apply,
+    Apply(ApplyArgs),
 }
 
 #[derive(Debug, Args)]
@@ -50,6 +50,13 @@ pub struct AddArgs {
     /// Command to run for this alias.
     #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 0..)]
     pub command: Vec<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ApplyArgs {
+    /// Generate only one shell script.
+    #[arg(long, value_enum)]
+    pub shell: Option<InitShell>,
 }
 
 #[derive(Debug, Args)]

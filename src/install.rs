@@ -45,15 +45,27 @@ pub enum InitShell {
     Powershell,
 }
 
-pub fn apply(paths: &AppPaths) -> Result<ApplyResult> {
+pub fn apply(paths: &AppPaths, shell: Option<InitShell>) -> Result<ApplyResult> {
     let config = load_config(paths)?;
     paths.ensure_generated_dir()?;
 
-    let bash_script = render_bash(&config);
-    let powershell_script = render_powershell(&config);
+    let bash_script = if shell.is_none() || matches!(shell, Some(InitShell::Bash)) {
+        Some(render_bash(&config))
+    } else {
+        None
+    };
+    let powershell_script = if shell.is_none() || matches!(shell, Some(InitShell::Powershell)) {
+        Some(render_powershell(&config))
+    } else {
+        None
+    };
 
-    atomic_write(&paths.bash_script, &bash_script)?;
-    atomic_write(&paths.powershell_script, &powershell_script)?;
+    if let Some(script) = &bash_script {
+        atomic_write(&paths.bash_script, script)?;
+    }
+    if let Some(script) = &powershell_script {
+        atomic_write(&paths.powershell_script, script)?;
+    }
 
     Ok(ApplyResult {
         bash_script: paths.bash_script.clone(),
@@ -89,7 +101,7 @@ pub fn add(
     );
 
     save_config(paths, &config)?;
-    apply(paths)
+    apply(paths, None)
 }
 
 fn normalize_optional(value: Option<String>) -> Option<String> {
@@ -112,7 +124,7 @@ pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
     }
 
     save_config(paths, &config)?;
-    apply(paths)
+    apply(paths, None)
 }
 
 pub fn list(paths: &AppPaths) -> Result<String> {
@@ -159,7 +171,7 @@ pub fn init_with_targets_and_shell(
         save_config(paths, &default_config())?;
     }
 
-    let apply_result = apply(paths)?;
+    let apply_result = apply(paths, None)?;
 
     if shell.is_none() || matches!(shell, Some(InitShell::Bash)) {
         write_shell_profile(
