@@ -2,7 +2,7 @@ use crate::model::{Alias, Config, Profile};
 use std::fmt::Write as _;
 
 pub fn render_bash(config: &Config) -> String {
-    render_bash_with_profile(config, Profile::current())
+    render_bash_with_profile(config, None)
 }
 
 pub fn render_bash_with_profile(config: &Config, profile: Option<Profile>) -> String {
@@ -28,7 +28,7 @@ pub fn render_zsh(config: &Config) -> String {
 }
 
 pub fn render_powershell(config: &Config) -> String {
-    render_powershell_with_profile(config, Profile::current())
+    render_powershell_with_profile(config, None)
 }
 
 pub fn render_powershell_with_profile(config: &Config, profile: Option<Profile>) -> String {

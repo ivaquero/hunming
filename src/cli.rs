@@ -11,6 +11,10 @@ pub struct Cli {
     #[arg(long, global = true, value_name = "FILE")]
     pub config: Option<PathBuf>,
 
+    /// Active profile for scoped aliases.
+    #[arg(long, global = true, value_enum)]
+    pub profile: Option<Profile>,
+
     #[command(subcommand)]
     pub command: Commands,
 }

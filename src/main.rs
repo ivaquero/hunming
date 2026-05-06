@@ -11,13 +11,14 @@ use std::path::PathBuf;
 fn main() -> Result<()> {
     let cli = hunming::cli::Cli::parse();
     let paths = resolve_paths(cli.config)?;
+    let profile = cli.profile;
 
     match cli.command {
         hunming::cli::Commands::Init(args) => {
-            install::init(&paths, args.shell)?;
+            install::init_with_profile(&paths, args.shell, profile)?;
         }
         hunming::cli::Commands::Add(args) => {
-            install::add(
+            install::add_with_profile(
                 &paths,
                 args.name,
                 args.bash,
@@ -26,10 +27,11 @@ fn main() -> Result<()> {
                 args.tags,
                 args.command,
                 args.force,
+                profile,
             )?;
         }
         hunming::cli::Commands::Remove(args) => {
-            install::remove(&paths, args.name)?;
+            install::remove_with_profile(&paths, args.name, profile)?;
         }
         hunming::cli::Commands::List => {
             print!("{}", install::list(&paths)?);
@@ -38,7 +40,7 @@ fn main() -> Result<()> {
             print!("{}", install::show(&paths, args.name)?);
         }
         hunming::cli::Commands::Apply(args) => {
-            let result = install::apply(&paths, args.shell)?;
+            let result = install::apply_with_profile(&paths, args.shell, profile)?;
             match args.shell {
                 Some(hunming::install::InitShell::Bash) => {
                     println!("{}", result.bash_script.display());
@@ -84,10 +86,10 @@ fn main() -> Result<()> {
             }
         }
         hunming::cli::Commands::Edit => {
-            install::edit(&paths)?;
+            install::edit_with_profile(&paths, profile)?;
         }
         hunming::cli::Commands::Doctor(args) => {
-            print!("{}", install::doctor(&paths, args.fix)?);
+            print!("{}", install::doctor_with_profile(&paths, args.fix, profile)?);
         }
     }
 

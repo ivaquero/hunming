@@ -1,7 +1,6 @@
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::env;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -103,34 +102,10 @@ impl Alias {
         self.platforms.is_empty() || self.platforms.contains(&Platform::current())
     }
 
-    pub fn is_active_for_current_profile(&self) -> bool {
-        self.is_active_for_profile(Profile::current())
-    }
-
     pub fn is_active_for_profile(&self, profile: Option<Profile>) -> bool {
         match self.profile {
             None => true,
-            Some(expected) => match profile {
-                None => true,
-                Some(current) => current == expected,
-            },
-        }
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.is_active_for_current_platform() && self.is_active_for_current_profile()
-    }
-}
-
-impl Profile {
-    pub fn current() -> Option<Self> {
-        let value = env::var("HUNMING_PROFILE").ok()?;
-        let value = value.trim().to_ascii_lowercase();
-
-        match value.as_str() {
-            "work" => Some(Self::Work),
-            "personal" => Some(Self::Personal),
-            _ => None,
+            Some(expected) => matches!(profile, Some(current) if current == expected),
         }
     }
 }

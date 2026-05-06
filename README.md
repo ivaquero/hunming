@@ -11,33 +11,28 @@ Cross-platform alias manager for Bash and PowerShell.
 
 ## Usage
 
-- `hunming init`: create the config file, generated scripts, and shell profile blocks.
-- `hunming --config /path/to/aliases.toml ...`: use a custom `aliases.toml` path for any command.
-- `hunming add`: add or update one alias definition.
-- `hunming add --profile work|personal`: scope the alias to a work or personal profile.
+- `hunming init`: create `aliases.toml`, generate scripts, and install shell-profile blocks.
+- `hunming init --shell bash|zsh|powershell`: limit init to one shell profile.
+- `hunming --config /path/to/aliases.toml ...`: use a custom config file path for any command.
+- `hunming --profile work|personal ...`: render or install only aliases in that profile.
+- `hunming add <name> [--bash ...] [--powershell ...] [--profile ...] [--tag ...] [--force] [-- ...]`: add or update one alias.
 - `hunming list`: show all configured aliases in a compact table.
-- `hunming show <name>`: print one alias in TOML form.
-- `hunming apply`: regenerate shell scripts from `aliases.toml`.
-- `hunming template`: print a starter `aliases.toml` template to stdout.
-- `hunming template --output aliases.toml`: write the template to a file.
-- `hunming backup`: back up shell profiles before you edit them.
-- `hunming restore`: restore shell profiles from the last backup.
-- `hunming doctor`: check the current installation and optionally repair it with `--fix`.
+- `hunming show <name>`: print one alias definition in TOML form.
+- `hunming apply [--shell bash|zsh|powershell]`: regenerate generated shell scripts.
+- `hunming edit`: open the config file in your editor, then reapply scripts.
+- `hunming template [--output FILE]`: export a starter `aliases.toml` template.
+- `hunming backup [--shell bash|zsh|powershell]`: back up shell profiles before changes.
+- `hunming restore [--shell bash|zsh|powershell]`: restore shell profiles from the last backup.
+- `hunming doctor [--fix]`: check the current installation and optionally repair it.
 
 ## Profiles
 
-Aliases can be scoped to a work or personal profile:
+Aliases can be scoped to a work or personal profile. Profile-scoped aliases only render when you pass the matching `--profile` flag:
 
 ```toml
 [aliases.gs]
 command = ["git", "status", "--short"]
 profile = "work"
-```
-
-Set the active profile with:
-
-```bash
-export HUNMING_PROFILE=work
 ```
 
 Valid values are `work` and `personal`.
@@ -48,6 +43,8 @@ Default config locations:
 
 - Unix: `~/.config/hunming/aliases.toml`
 - Windows: `%APPDATA%/hunming/aliases.toml`
+
+If you want a different location, pass `--config /path/to/aliases.toml`.
 
 Generated scripts live under the `generated/` directory next to the config file.
 

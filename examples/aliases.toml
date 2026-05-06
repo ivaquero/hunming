@@ -1,0 +1,28 @@
+[aliases.gs]
+description = "Git status short"
+command = ["git", "status", "--short"]
+tags = ["git", "status"]
+
+[aliases.gco]
+description = "Git checkout"
+command = ["git", "checkout"]
+forward_args = true
+tags = ["git"]
+
+[aliases.ll]
+description = "Long list"
+bash = "ls -lah"
+powershell = "Get-ChildItem -Force"
+tags = ["files"]
+
+[aliases.flushdns]
+description = "Flush DNS cache"
+platforms = ["windows"]
+powershell = "Clear-DnsClientCache"
+tags = ["windows", "network"]
+
+[aliases.ip]
+description = "Show IP info"
+platforms = ["macos"]
+bash = "ipconfig getifaddr en0"
+tags = ["macos", "network"]

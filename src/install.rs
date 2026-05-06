@@ -5,7 +5,7 @@ use crate::config::save_config;
 use crate::fs::atomic_write;
 use crate::model::{Alias, Config, Profile};
 use crate::paths::AppPaths;
-use crate::render::{render_bash, render_powershell, render_zsh};
+use crate::render::{render_bash_with_profile, render_powershell_with_profile};
 use crate::validation::validate_alias_name;
 use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
@@ -67,21 +67,29 @@ pub enum InitShell {
 }
 
 pub fn apply(paths: &AppPaths, shell: Option<InitShell>) -> Result<ApplyResult> {
+    apply_with_profile(paths, shell, None)
+}
+
+pub fn apply_with_profile(
+    paths: &AppPaths,
+    shell: Option<InitShell>,
+    profile: Option<Profile>,
+) -> Result<ApplyResult> {
     let config = load_config(paths)?;
     paths.ensure_generated_dir()?;
 
     let bash_script = if shell.is_none() || matches!(shell, Some(InitShell::Bash)) {
-        Some(render_bash(&config))
+        Some(render_bash_with_profile(&config, profile))
     } else {
         None
     };
     let zsh_script = if shell.is_none() || matches!(shell, Some(InitShell::Zsh)) {
-        Some(render_zsh(&config))
+        Some(render_bash_with_profile(&config, profile))
     } else {
         None
     };
     let powershell_script = if shell.is_none() || matches!(shell, Some(InitShell::Powershell)) {
-        Some(render_powershell(&config))
+        Some(render_powershell_with_profile(&config, profile))
     } else {
         None
     };
@@ -104,13 +112,28 @@ pub fn apply(paths: &AppPaths, shell: Option<InitShell>) -> Result<ApplyResult> 
 }
 
 pub fn edit(paths: &AppPaths) -> Result<ApplyResult> {
-    edit_with_opener(paths, |config_file| {
+    edit_with_profile(paths, None)
+}
+
+pub fn edit_with_profile(paths: &AppPaths, profile: Option<Profile>) -> Result<ApplyResult> {
+    edit_with_opener_and_profile(paths, profile, |config_file| {
         let editor = resolve_editor()?;
         run_editor(&editor, config_file)
     })
 }
 
 pub fn edit_with_opener<F>(paths: &AppPaths, opener: F) -> Result<ApplyResult>
+where
+    F: FnOnce(&Path) -> Result<()>,
+{
+    edit_with_opener_and_profile(paths, None, opener)
+}
+
+pub fn edit_with_opener_and_profile<F>(
+    paths: &AppPaths,
+    profile: Option<Profile>,
+    opener: F,
+) -> Result<ApplyResult>
 where
     F: FnOnce(&Path) -> Result<()>,
 {
@@ -121,7 +144,7 @@ where
     }
 
     opener(&paths.config_file)?;
-    apply(paths, None)
+    apply_with_profile(paths, None, profile)
 }
 
 pub fn backup(_paths: &AppPaths, shell: Option<InitShell>) -> Result<ProfileResult> {
@@ -194,6 +217,20 @@ pub fn add(
     command: Vec<String>,
     force: bool,
 ) -> Result<ApplyResult> {
+    add_with_profile(paths, name, bash, powershell, profile, tags, command, force, None)
+}
+
+pub fn add_with_profile(
+    paths: &AppPaths,
+    name: String,
+    bash: Option<String>,
+    powershell: Option<String>,
+    profile: Option<Profile>,
+    tags: Vec<String>,
+    command: Vec<String>,
+    force: bool,
+    render_profile: Option<Profile>,
+) -> Result<ApplyResult> {
     validate_alias_name(&name)?;
     let mut config = load_config(paths)?;
 
@@ -216,7 +253,7 @@ pub fn add(
     );
 
     save_config(paths, &config)?;
-    apply(paths, None)
+    apply_with_profile(paths, None, render_profile)
 }
 
 fn normalize_optional(value: Option<String>) -> Option<String> {
@@ -269,6 +306,14 @@ fn run_editor(editor: &[String], config_file: &Path) -> Result<()> {
 }
 
 pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
+    remove_with_profile(paths, name, None)
+}
+
+pub fn remove_with_profile(
+    paths: &AppPaths,
+    name: String,
+    render_profile: Option<Profile>,
+) -> Result<ApplyResult> {
     validate_alias_name(&name)?;
     let mut config = load_config(paths)?;
 
@@ -277,7 +322,7 @@ pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
     }
 
     save_config(paths, &config)?;
-    apply(paths, None)
+    apply_with_profile(paths, None, render_profile)
 }
 
 pub fn list(paths: &AppPaths) -> Result<String> {
@@ -331,18 +376,35 @@ pub fn show(paths: &AppPaths, name: String) -> Result<String> {
 }
 
 pub fn init(paths: &AppPaths, shell: Option<InitShell>) -> Result<InitResult> {
+    init_with_profile(paths, shell, None)
+}
+
+pub fn init_with_profile(
+    paths: &AppPaths,
+    shell: Option<InitShell>,
+    profile: Option<Profile>,
+) -> Result<InitResult> {
     let targets = default_init_targets()?;
-    init_with_targets_and_shell(paths, &targets, shell)
+    init_with_targets_and_shell_and_profile(paths, &targets, shell, profile)
 }
 
 pub fn init_with_targets(paths: &AppPaths, targets: &InitTargets) -> Result<InitResult> {
-    init_with_targets_and_shell(paths, targets, None)
+    init_with_targets_and_shell_and_profile(paths, targets, None, None)
 }
 
 pub fn init_with_targets_and_shell(
     paths: &AppPaths,
     targets: &InitTargets,
     shell: Option<InitShell>,
+) -> Result<InitResult> {
+    init_with_targets_and_shell_and_profile(paths, targets, shell, None)
+}
+
+pub fn init_with_targets_and_shell_and_profile(
+    paths: &AppPaths,
+    targets: &InitTargets,
+    shell: Option<InitShell>,
+    profile: Option<Profile>,
 ) -> Result<InitResult> {
     paths.ensure_config_dir()?;
     paths.ensure_generated_dir()?;
@@ -351,7 +413,7 @@ pub fn init_with_targets_and_shell(
         save_config(paths, &default_config())?;
     }
 
-    let apply_result = apply(paths, None)?;
+    let apply_result = apply_with_profile(paths, None, profile)?;
 
     if shell.is_none() || matches!(shell, Some(InitShell::Bash)) {
         write_shell_profile(
@@ -383,15 +445,32 @@ pub fn init_with_targets_and_shell(
 }
 
 pub fn doctor(paths: &AppPaths, fix: bool) -> Result<String> {
+    doctor_with_profile(paths, fix, None)
+}
+
+pub fn doctor_with_profile(
+    paths: &AppPaths,
+    fix: bool,
+    profile: Option<Profile>,
+) -> Result<String> {
     let targets = default_doctor_targets()?;
-    doctor_with_targets(paths, &targets, fix)
+    doctor_with_targets_and_profile(paths, &targets, fix, profile)
 }
 
 pub fn doctor_with_targets(paths: &AppPaths, targets: &DoctorTargets, fix: bool) -> Result<String> {
+    doctor_with_targets_and_profile(paths, targets, fix, None)
+}
+
+pub fn doctor_with_targets_and_profile(
+    paths: &AppPaths,
+    targets: &DoctorTargets,
+    fix: bool,
+    profile: Option<Profile>,
+) -> Result<String> {
     let initial_state = inspect_config(paths);
 
     if fix {
-        repair_doctor(paths, targets, &initial_state)?;
+        repair_doctor(paths, targets, &initial_state, profile)?;
     }
 
     let config_state = inspect_config(paths);
@@ -777,11 +856,12 @@ fn repair_doctor(
     paths: &AppPaths,
     targets: &DoctorTargets,
     config_state: &ConfigState,
+    profile: Option<Profile>,
 ) -> Result<()> {
     match config_state {
         ConfigState::Missing => {
             save_config(paths, &default_config())?;
-            apply(paths, None)?;
+            apply_with_profile(paths, None, profile)?;
             write_shell_profile(
                 &targets.bash_rc_profile,
                 &bash_managed_block(&paths.bash_script),
@@ -793,7 +873,7 @@ fn repair_doctor(
             )?;
         }
         ConfigState::Valid(_) => {
-            apply(paths, None)?;
+            apply_with_profile(paths, None, profile)?;
             write_shell_profile(
                 &targets.bash_rc_profile,
                 &bash_managed_block(&paths.bash_script),
