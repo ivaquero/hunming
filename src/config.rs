@@ -3,6 +3,7 @@ use crate::paths::AppPaths;
 use crate::fs::atomic_write;
 use anyhow::{Context, Result};
 use std::fs;
+use crate::validation::validate_config;
 
 pub fn default_config() -> Config {
     Config::default()
@@ -22,16 +23,21 @@ pub fn load_config(paths: &AppPaths) -> Result<Config> {
         )
     })?;
 
-    toml::from_str(&content).with_context(|| {
+    let config: Config = toml::from_str(&content).with_context(|| {
         format!(
             "failed to parse config file at {}",
             paths.config_file.display()
         )
-    })
+    })?;
+
+    validate_config(&config)?;
+
+    Ok(config)
 }
 
 pub fn save_config(paths: &AppPaths, config: &Config) -> Result<()> {
     paths.ensure_config_dir()?;
+    validate_config(config)?;
 
     let mut content = toml::to_string_pretty(config).context("failed to serialize config")?;
     if !content.ends_with('\n') {

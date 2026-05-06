@@ -5,6 +5,7 @@ use crate::fs::atomic_write;
 use crate::model::Alias;
 use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell};
+use crate::validation::validate_alias_name;
 use anyhow::{bail, Context, Result};
 use directories::BaseDirs;
 use std::fs;
@@ -58,6 +59,7 @@ pub fn add(
     command: Vec<String>,
     force: bool,
 ) -> Result<ApplyResult> {
+    validate_alias_name(&name)?;
     let mut config = load_config(paths)?;
 
     if config.aliases.contains_key(&name) && !force {
@@ -78,6 +80,7 @@ pub fn add(
 }
 
 pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
+    validate_alias_name(&name)?;
     let mut config = load_config(paths)?;
 
     if config.aliases.remove(&name).is_none() {
