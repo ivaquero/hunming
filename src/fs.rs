@@ -6,13 +6,11 @@ use tempfile::NamedTempFile;
 
 pub fn atomic_write(path: &Path, content: &str) -> Result<()> {
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
-    fs::create_dir_all(parent).with_context(|| {
-        format!("failed to create parent directory at {}", parent.display())
-    })?;
+    fs::create_dir_all(parent)
+        .with_context(|| format!("failed to create parent directory at {}", parent.display()))?;
 
-    let mut temp_file = NamedTempFile::new_in(parent).with_context(|| {
-        format!("failed to create temporary file in {}", parent.display())
-    })?;
+    let mut temp_file = NamedTempFile::new_in(parent)
+        .with_context(|| format!("failed to create temporary file in {}", parent.display()))?;
 
     temp_file
         .write_all(content.as_bytes())

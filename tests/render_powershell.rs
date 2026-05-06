@@ -49,7 +49,10 @@ fn renders_explicit_powershell_functions() {
 
     let rendered = render_powershell(&config);
 
-    assert_eq!(rendered, "function ll {\n    Get-ChildItem -Force @args\n}\n");
+    assert_eq!(
+        rendered,
+        "function ll {\n    Get-ChildItem -Force @args\n}\n"
+    );
 }
 
 #[test]
@@ -111,7 +114,10 @@ fn respects_forward_args_flag() {
         aliases,
     };
 
-    assert_eq!(render_powershell(&config), "function gs {\n    git status\n}\n");
+    assert_eq!(
+        render_powershell(&config),
+        "function gs {\n    git status\n}\n"
+    );
 }
 
 #[test]

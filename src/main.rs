@@ -13,7 +13,14 @@ fn main() -> Result<()> {
         }
         hunming::cli::Commands::Add(args) => {
             let paths = AppPaths::new()?;
-            install::add(&paths, args.name, args.command, args.force)?;
+            install::add(
+                &paths,
+                args.name,
+                args.bash,
+                args.powershell,
+                args.command,
+                args.force,
+            )?;
         }
         hunming::cli::Commands::Remove(args) => {
             let paths = AppPaths::new()?;

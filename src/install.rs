@@ -1,12 +1,12 @@
+use crate::config::default_config;
 use crate::config::load_config;
 use crate::config::save_config;
-use crate::config::default_config;
 use crate::fs::atomic_write;
 use crate::model::Alias;
 use crate::paths::AppPaths;
 use crate::render::{render_bash, render_powershell};
 use crate::validation::validate_alias_name;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
 use directories::BaseDirs;
 use std::fs;
@@ -64,6 +64,8 @@ pub fn apply(paths: &AppPaths) -> Result<ApplyResult> {
 pub fn add(
     paths: &AppPaths,
     name: String,
+    bash: Option<String>,
+    powershell: Option<String>,
     command: Vec<String>,
     force: bool,
 ) -> Result<ApplyResult> {
@@ -79,8 +81,8 @@ pub fn add(
         Alias {
             description: None,
             command,
-            bash: None,
-            powershell: None,
+            bash: normalize_optional(bash),
+            powershell: normalize_optional(powershell),
             forward_args: true,
             platforms: Vec::new(),
         },
@@ -88,6 +90,17 @@ pub fn add(
 
     save_config(paths, &config)?;
     apply(paths)
+}
+
+fn normalize_optional(value: Option<String>) -> Option<String> {
+    value.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
 }
 
 pub fn remove(paths: &AppPaths, name: String) -> Result<ApplyResult> {
@@ -119,9 +132,7 @@ pub fn list(paths: &AppPaths) -> Result<String> {
     let mut output = String::new();
     for (name, alias) in &config.aliases {
         let (kind, detail) = describe_alias(alias);
-        output.push_str(&format!(
-            "{name:<name_width$}  {kind:<11}  {detail}\n",
-        ));
+        output.push_str(&format!("{name:<name_width$}  {kind:<11}  {detail}\n",));
     }
 
     Ok(output)
@@ -235,10 +246,7 @@ pub fn write_shell_profile(profile_path: impl AsRef<Path>, block: &str) -> Resul
         Ok(content) => content,
         Err(err) if err.kind() == ErrorKind::NotFound => String::new(),
         Err(err) => Err(err).with_context(|| {
-            format!(
-                "failed to read shell profile at {}",
-                profile_path.display()
-            )
+            format!("failed to read shell profile at {}", profile_path.display())
         })?,
     };
     let updated = insert_managed_block(&existing, block);
@@ -247,7 +255,10 @@ pub fn write_shell_profile(profile_path: impl AsRef<Path>, block: &str) -> Resul
 
 fn describe_alias(alias: &Alias) -> (&'static str, String) {
     let has_command = !alias.command.is_empty();
-    let has_bash = alias.bash.as_ref().is_some_and(|value| !value.trim().is_empty());
+    let has_bash = alias
+        .bash
+        .as_ref()
+        .is_some_and(|value| !value.trim().is_empty());
     let has_powershell = alias
         .powershell
         .as_ref()
@@ -265,7 +276,10 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
     }
 
     if has_bash {
-        return ("bash", alias.bash.as_deref().unwrap_or_default().to_string());
+        return (
+            "bash",
+            alias.bash.as_deref().unwrap_or_default().to_string(),
+        );
     }
 
     if has_powershell {

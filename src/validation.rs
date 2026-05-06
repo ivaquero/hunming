@@ -1,5 +1,5 @@
 use crate::model::{Alias, Config};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 pub fn validate_config(config: &Config) -> Result<()> {
     for (name, alias) in &config.aliases {
@@ -13,7 +13,10 @@ pub fn validate_alias(name: &str, alias: &Alias) -> Result<()> {
     validate_alias_name(name)?;
 
     let has_command = !alias.command.is_empty();
-    let has_bash = alias.bash.as_ref().is_some_and(|value| !value.trim().is_empty());
+    let has_bash = alias
+        .bash
+        .as_ref()
+        .is_some_and(|value| !value.trim().is_empty());
     let has_powershell = alias
         .powershell
         .as_ref()
@@ -35,16 +38,12 @@ pub fn validate_alias_name(name: &str) -> Result<()> {
 
     match chars.next() {
         Some(first) if first.is_ascii_alphabetic() || first == '_' => {}
-        _ => bail!(
-            "invalid alias name `{name}`: must match ^[A-Za-z_][A-Za-z0-9_-]*$"
-        ),
+        _ => bail!("invalid alias name `{name}`: must match ^[A-Za-z_][A-Za-z0-9_-]*$"),
     }
 
     if chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-') {
         Ok(())
     } else {
-        bail!(
-            "invalid alias name `{name}`: must match ^[A-Za-z_][A-Za-z0-9_-]*$"
-        )
+        bail!("invalid alias name `{name}`: must match ^[A-Za-z_][A-Za-z0-9_-]*$")
     }
 }

@@ -1,7 +1,6 @@
 use hunming::install::{
-    bash_managed_block, init_with_targets, init_with_targets_and_shell,
-    powershell_managed_block, InitShell, InitTargets,
-    MANAGED_BLOCK_END, MANAGED_BLOCK_START,
+    InitShell, InitTargets, MANAGED_BLOCK_END, MANAGED_BLOCK_START, bash_managed_block,
+    init_with_targets, init_with_targets_and_shell, powershell_managed_block,
 };
 use hunming::paths::AppPaths;
 use std::fs;
@@ -30,10 +29,7 @@ fn init_creates_config_generated_and_profiles() {
     let bash_profile = fs::read_to_string(&targets.bash_profile).expect("bash profile readable");
     assert!(bash_profile.contains(MANAGED_BLOCK_START));
     assert!(bash_profile.contains(&paths.bash_script.display().to_string()));
-    assert_eq!(
-        bash_profile,
-        bash_managed_block(&paths.bash_script)
-    );
+    assert_eq!(bash_profile, bash_managed_block(&paths.bash_script));
 
     let powershell_profile =
         fs::read_to_string(&targets.powershell_profile).expect("powershell profile readable");

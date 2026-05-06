@@ -39,8 +39,7 @@ fn apply_creates_scripts_for_existing_config() {
         "gs() {\n  git status --short \"$@\"\n}\n"
     );
     assert_eq!(
-        fs::read_to_string(&paths.powershell_script)
-            .expect("powershell script should be readable"),
+        fs::read_to_string(&paths.powershell_script).expect("powershell script should be readable"),
         "function gs {\n    git status --short @args\n}\n"
     );
 }
@@ -53,7 +52,10 @@ fn apply_writes_empty_scripts_for_default_config() {
     apply(&paths).expect("apply should succeed");
 
     assert!(paths.config_file.exists());
-    assert_eq!(fs::read_to_string(&paths.bash_script).expect("bash script should exist"), "");
+    assert_eq!(
+        fs::read_to_string(&paths.bash_script).expect("bash script should exist"),
+        ""
+    );
     assert_eq!(
         fs::read_to_string(&paths.powershell_script).expect("powershell script should exist"),
         ""

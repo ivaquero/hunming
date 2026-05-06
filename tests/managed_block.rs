@@ -1,6 +1,6 @@
 use hunming::install::{
-    bash_managed_block, insert_managed_block, powershell_managed_block, MANAGED_BLOCK_END,
-    MANAGED_BLOCK_START,
+    MANAGED_BLOCK_END, MANAGED_BLOCK_START, bash_managed_block, insert_managed_block,
+    powershell_managed_block,
 };
 
 #[test]

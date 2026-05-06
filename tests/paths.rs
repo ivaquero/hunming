@@ -6,7 +6,10 @@ use tempfile::tempdir;
 fn builds_unix_paths_from_home_directory() {
     let paths = AppPaths::from_unix_home("/Users/alice");
 
-    assert_eq!(paths.config_dir, PathBuf::from("/Users/alice/.config/hunming"));
+    assert_eq!(
+        paths.config_dir,
+        PathBuf::from("/Users/alice/.config/hunming")
+    );
     assert_eq!(
         paths.config_file,
         PathBuf::from("/Users/alice/.config/hunming/aliases.toml")

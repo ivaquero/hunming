@@ -1,9 +1,9 @@
+use crate::fs::atomic_write;
 use crate::model::Config;
 use crate::paths::AppPaths;
-use crate::fs::atomic_write;
+use crate::validation::validate_config;
 use anyhow::{Context, Result};
 use std::fs;
-use crate::validation::validate_config;
 
 pub fn default_config() -> Config {
     Config::default()

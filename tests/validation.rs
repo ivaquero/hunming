@@ -53,7 +53,11 @@ fn rejects_empty_aliases_on_save() {
     )
     .expect_err("save should reject empty aliases");
 
-    assert!(error.to_string().contains("must define command, bash, or powershell"));
+    assert!(
+        error
+            .to_string()
+            .contains("must define command, bash, or powershell")
+    );
 }
 
 #[test]
@@ -90,7 +94,11 @@ version = 1
 
     let error = load_config(&paths).expect_err("load should reject empty aliases");
 
-    assert!(error.to_string().contains("must define command, bash, or powershell"));
+    assert!(
+        error
+            .to_string()
+            .contains("must define command, bash, or powershell")
+    );
 }
 
 #[test]
@@ -101,6 +109,8 @@ fn add_rejects_invalid_alias_name() {
     let error = add(
         &paths,
         "1bad".to_string(),
+        None,
+        None,
         vec!["git".into(), "status".into()],
         false,
     )

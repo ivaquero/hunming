@@ -14,6 +14,8 @@ fn add_creates_new_alias_and_updates_scripts() {
     add(
         &paths,
         "gs".to_string(),
+        None,
+        None,
         vec!["git".into(), "status".into(), "--short".into()],
         false,
     )
@@ -64,6 +66,8 @@ fn add_rejects_existing_alias_without_force() {
     let error = add(
         &paths,
         "gs".to_string(),
+        None,
+        None,
         vec!["git".into(), "status".into(), "--short".into()],
         false,
     )
@@ -105,6 +109,8 @@ fn add_replaces_existing_alias_with_force() {
     add(
         &paths,
         "gs".to_string(),
+        None,
+        None,
         vec!["git".into(), "status".into(), "--short".into()],
         true,
     )
@@ -118,5 +124,36 @@ fn add_replaces_existing_alias_with_force() {
     assert_eq!(
         fs::read_to_string(&paths.bash_script).expect("bash script should exist"),
         "gs() {\n  git status --short \"$@\"\n}\n"
+    );
+}
+
+#[test]
+fn add_supports_explicit_shell_commands() {
+    let temp = tempdir().expect("temp dir should be created");
+    let paths = AppPaths::from_config_dir(temp.path().join("hunming"));
+
+    add(
+        &paths,
+        "ll".to_string(),
+        Some("ls -lah".into()),
+        Some("Get-ChildItem -Force".into()),
+        Vec::new(),
+        false,
+    )
+    .expect("add should succeed");
+
+    let config = load_config(&paths).expect("config should load");
+    assert_eq!(config.aliases["ll"].bash.as_deref(), Some("ls -lah"));
+    assert_eq!(
+        config.aliases["ll"].powershell.as_deref(),
+        Some("Get-ChildItem -Force")
+    );
+    assert_eq!(
+        fs::read_to_string(&paths.bash_script).expect("bash script should exist"),
+        "ll() {\n  ls -lah \"$@\"\n}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(&paths.powershell_script).expect("powershell script should exist"),
+        "function ll {\n    Get-ChildItem -Force @args\n}\n"
     );
 }

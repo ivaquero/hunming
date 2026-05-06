@@ -1,5 +1,5 @@
-use clap::{Args, Parser, Subcommand};
 use crate::install::InitShell;
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(name = "hunming", version, about = "Cross-platform alias manager")]
@@ -39,8 +39,16 @@ pub struct AddArgs {
     #[arg(long)]
     pub force: bool,
 
+    /// Bash command to run for this alias.
+    #[arg(long)]
+    pub bash: Option<String>,
+
+    /// PowerShell command to run for this alias.
+    #[arg(long)]
+    pub powershell: Option<String>,
+
     /// Command to run for this alias.
-    #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 1..)]
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 0..)]
     pub command: Vec<String>,
 }
 
