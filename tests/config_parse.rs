@@ -7,14 +7,24 @@ fn deserialize_sample_config() {
 version = 1
 
 [aliases.gs]
+description = "Git status short"
 command = ["git", "status", "--short"]
 
 [aliases.gco]
 command = ["git", "checkout"]
+forward_args = true
 
 [aliases.ll]
 bash = "ls -lah"
 powershell = "Get-ChildItem -Force"
+
+[aliases.flushdns]
+platforms = ["windows"]
+powershell = "Clear-DnsClientCache"
+
+[aliases.ip]
+platforms = ["macos"]
+bash = "ipconfig getifaddr en0"
 "#;
 
     let config: Config = toml::from_str(input).expect("config should deserialize");
@@ -25,11 +35,18 @@ powershell = "Get-ChildItem -Force"
         vec!["git", "status", "--short"]
     );
     assert_eq!(config.aliases["gco"].command, vec!["git", "checkout"]);
+    assert_eq!(
+        config.aliases["gs"].description.as_deref(),
+        Some("Git status short")
+    );
+    assert!(config.aliases["gco"].forward_args);
     assert_eq!(config.aliases["ll"].bash.as_deref(), Some("ls -lah"));
     assert_eq!(
         config.aliases["ll"].powershell.as_deref(),
         Some("Get-ChildItem -Force")
     );
+    assert_eq!(config.aliases["flushdns"].platforms.len(), 1);
+    assert_eq!(config.aliases["ip"].platforms.len(), 1);
 }
 
 #[test]
@@ -38,9 +55,12 @@ fn roundtrip_config() {
     aliases.insert(
         "gs".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 

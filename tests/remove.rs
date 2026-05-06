@@ -15,17 +15,23 @@ fn remove_deletes_alias_and_updates_scripts() {
     aliases.insert(
         "gs".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
     aliases.insert(
         "gco".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "checkout".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 

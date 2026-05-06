@@ -69,9 +69,12 @@ pub fn add(
     config.aliases.insert(
         name,
         Alias {
+            description: None,
             command,
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 
@@ -251,7 +254,11 @@ fn describe_alias(alias: &Alias) -> (&'static str, String) {
     }
 
     if has_command {
-        return ("command", alias.command.join(" "));
+        let mut detail = alias.command.join(" ");
+        if !alias.forward_args {
+            detail.push_str(" (no args)");
+        }
+        return ("command", detail);
     }
 
     ("command", String::new())

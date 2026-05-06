@@ -38,6 +38,10 @@ pub fn render_powershell(config: &Config) -> String {
 }
 
 fn render_bash_function(name: &str, alias: &Alias) -> Option<String> {
+    if !alias.is_active_for_current_platform() {
+        return None;
+    }
+
     let command = if !alias.command.is_empty() {
         Some(alias.command.join(" "))
     } else {
@@ -50,7 +54,11 @@ fn render_bash_function(name: &str, alias: &Alias) -> Option<String> {
 
     let mut output = String::new();
     writeln!(&mut output, "{name}() {{").ok()?;
-    writeln!(&mut output, "  {command} \"$@\"").ok()?;
+    if alias.forward_args {
+        writeln!(&mut output, "  {command} \"$@\"").ok()?;
+    } else {
+        writeln!(&mut output, "  {command}").ok()?;
+    }
     output.push('}');
     output.push('\n');
 
@@ -58,6 +66,10 @@ fn render_bash_function(name: &str, alias: &Alias) -> Option<String> {
 }
 
 fn render_powershell_function(name: &str, alias: &Alias) -> Option<String> {
+    if !alias.is_active_for_current_platform() {
+        return None;
+    }
+
     let command = alias
         .powershell
         .as_ref()
@@ -77,7 +89,11 @@ fn render_powershell_function(name: &str, alias: &Alias) -> Option<String> {
 
     let mut output = String::new();
     writeln!(&mut output, "function {name} {{").ok()?;
-    writeln!(&mut output, "    {command} @args").ok()?;
+    if alias.forward_args {
+        writeln!(&mut output, "    {command} @args").ok()?;
+    } else {
+        writeln!(&mut output, "    {command}").ok()?;
+    }
     output.push('}');
     output.push('\n');
 

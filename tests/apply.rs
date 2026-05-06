@@ -14,9 +14,12 @@ fn apply_creates_scripts_for_existing_config() {
     aliases.insert(
         "gs".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
             bash: None,
             powershell: Some("git status --short".into()),
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 

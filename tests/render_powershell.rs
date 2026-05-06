@@ -8,9 +8,12 @@ fn renders_command_based_powershell_functions() {
     aliases.insert(
         "gs".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 
@@ -30,9 +33,12 @@ fn renders_explicit_powershell_functions() {
     aliases.insert(
         "ll".to_string(),
         Alias {
+            description: None,
             command: Vec::new(),
             bash: None,
             powershell: Some("Get-ChildItem -Force".into()),
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 
@@ -52,9 +58,12 @@ fn falls_back_to_command_when_powershell_is_missing() {
     aliases.insert(
         "gco".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "checkout".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 
@@ -80,4 +89,87 @@ fn skips_empty_aliases() {
     };
 
     assert!(render_powershell(&config).is_empty());
+}
+
+#[test]
+fn respects_forward_args_flag() {
+    let mut aliases = BTreeMap::new();
+    aliases.insert(
+        "gs".to_string(),
+        Alias {
+            description: None,
+            command: vec!["git".into(), "status".into()],
+            bash: None,
+            powershell: None,
+            forward_args: false,
+            platforms: Vec::new(),
+        },
+    );
+
+    let config = Config {
+        version: 1,
+        aliases,
+    };
+
+    assert_eq!(render_powershell(&config), "function gs {\n    git status\n}\n");
+}
+
+#[test]
+fn filters_other_platforms() {
+    let mut aliases = BTreeMap::new();
+    aliases.insert(
+        "local".to_string(),
+        Alias {
+            description: None,
+            command: vec!["echo".into(), "local".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: vec![current_platform()],
+        },
+    );
+    aliases.insert(
+        "remote".to_string(),
+        Alias {
+            description: None,
+            command: vec!["echo".into(), "remote".into()],
+            bash: None,
+            powershell: None,
+            forward_args: true,
+            platforms: vec![other_platform()],
+        },
+    );
+
+    let config = Config {
+        version: 1,
+        aliases,
+    };
+
+    assert_eq!(
+        render_powershell(&config),
+        "function local {\n    echo local @args\n}\n"
+    );
+}
+
+fn current_platform() -> hunming::model::Platform {
+    #[cfg(target_os = "windows")]
+    {
+        hunming::model::Platform::Windows
+    }
+    #[cfg(target_os = "macos")]
+    {
+        hunming::model::Platform::Macos
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        hunming::model::Platform::Linux
+    }
+}
+
+fn other_platform() -> hunming::model::Platform {
+    match current_platform() {
+        hunming::model::Platform::Windows => hunming::model::Platform::Macos,
+        hunming::model::Platform::Macos => hunming::model::Platform::Windows,
+        hunming::model::Platform::Linux => hunming::model::Platform::Windows,
+    }
 }

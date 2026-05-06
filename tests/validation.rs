@@ -15,9 +15,12 @@ fn rejects_invalid_alias_names_on_save() {
     aliases.insert(
         "1bad".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 

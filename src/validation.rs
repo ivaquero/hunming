@@ -23,6 +23,10 @@ pub fn validate_alias(name: &str, alias: &Alias) -> Result<()> {
         bail!("alias `{name}` must define command, bash, or powershell");
     }
 
+    if alias.platforms.is_empty() {
+        return Ok(());
+    }
+
     Ok(())
 }
 

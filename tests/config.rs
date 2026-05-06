@@ -36,9 +36,12 @@ fn save_and_load_roundtrip_config() {
     aliases.insert(
         "gs".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 

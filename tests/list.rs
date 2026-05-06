@@ -24,25 +24,34 @@ fn list_sorts_aliases_and_shows_kind() {
     aliases.insert(
         "ll".to_string(),
         Alias {
+            description: None,
             command: Vec::new(),
             bash: Some("ls -lah".into()),
             powershell: Some("Get-ChildItem -Force".into()),
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
     aliases.insert(
         "gco".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "checkout".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
     aliases.insert(
         "gs".to_string(),
         Alias {
+            description: None,
             command: vec!["git".into(), "status".into(), "--short".into()],
             bash: None,
             powershell: None,
+            forward_args: true,
+            platforms: Vec::new(),
         },
     );
 
