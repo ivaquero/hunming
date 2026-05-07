@@ -217,7 +217,9 @@ pub fn add(
     command: Vec<String>,
     force: bool,
 ) -> Result<ApplyResult> {
-    add_with_profile(paths, name, bash, powershell, profile, tags, command, force, None)
+    add_with_profile(
+        paths, name, bash, powershell, profile, tags, command, force, None,
+    )
 }
 
 pub fn add_with_profile(

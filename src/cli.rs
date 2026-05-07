@@ -43,6 +43,8 @@ pub enum Commands {
     Template(TemplateArgs),
     /// Edit the configuration file.
     Edit,
+    /// Open the interactive terminal UI.
+    Tui,
     /// Check the current installation.
     Doctor(DoctorArgs),
 }

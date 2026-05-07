@@ -6,4 +6,5 @@ pub mod install;
 pub mod model;
 pub mod paths;
 pub mod render;
+pub mod tui;
 pub mod validation;

@@ -18,6 +18,7 @@ Cross-platform alias manager for Bash and PowerShell.
 - `hunming add <name> [--bash ...] [--powershell ...] [--profile ...] [--tag ...] [--force] [-- ...]`: add or update one alias.
 - `hunming list`: show all configured aliases in a compact table.
 - `hunming show <name>`: print one alias definition in TOML form.
+- `hunming tui`: open an interactive TUI for browsing aliases.
 - `hunming apply [--shell bash|zsh|powershell]`: regenerate generated shell scripts.
 - `hunming edit`: open the config file in your editor, then reapply scripts.
 - `hunming template [--output FILE]`: export a starter `aliases.toml` template.

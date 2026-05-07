@@ -5,6 +5,7 @@ use hunming::config::render_template;
 use hunming::fs::atomic_write;
 use hunming::install;
 use hunming::paths::AppPaths;
+use hunming::tui;
 use std::fs;
 use std::path::PathBuf;
 
@@ -88,8 +89,14 @@ fn main() -> Result<()> {
         hunming::cli::Commands::Edit => {
             install::edit_with_profile(&paths, profile)?;
         }
+        hunming::cli::Commands::Tui => {
+            tui::run(&paths, profile)?;
+        }
         hunming::cli::Commands::Doctor(args) => {
-            print!("{}", install::doctor_with_profile(&paths, args.fix, profile)?);
+            print!(
+                "{}",
+                install::doctor_with_profile(&paths, args.fix, profile)?
+            );
         }
     }
 
